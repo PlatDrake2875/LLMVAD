@@ -1,0 +1,16 @@
+# Python-specific ignored files
+__pycache__/
+*.pyc
+*.pyd
+*.pyo
+
+# Virtual environment
+venv/
+.venv/ 
+
+# Datasets folder (as requested)
+datasets/
+
+# Operating System generated files
+.DS_Store # macOS
+Thumbs.db # Windows
