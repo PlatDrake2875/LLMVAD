@@ -10,7 +10,8 @@ class AnomalyDetector():
             "You are given video frames descriptions, one at a time. Output an anomaly score from 0 to 1 and give your reasoning. "
             "Output your response in this format:\n<REASONING>.\n<SCORE>."
         )
-        self.system_prompt = "You're a police officer investigating the likelihood of someone having broken the law." 
+        # self.system_prompt = "You're a police officer investigating the likelihood of someone having broken the law." 
+        self.system_prompt = "What is the likelihood of an anomaly taking place in the description?" 
         self.model_name = model_name
         self.timeout = timeout
 
@@ -45,6 +46,9 @@ class AnomalyDetector():
             payload = {
                 "model": self.model_name,
                 "messages": chat_history,
+                "options": {
+                    "temperature": 1.2
+                },
                 "stream": False 
             }
 
@@ -66,7 +70,7 @@ class AnomalyDetector():
                 # --- Extract score using the corrected regex ---
                 # This regex now expects '<SCORE>.' followed by optional whitespace,
                 # then captures the float number, without requiring a closing tag.
-                score_match = re.search(r'<SCORE>\.\s*(\d*\.?\d+)', model_response_content, re.IGNORECASE)
+                score_match = re.search(r'(\d+.\d+)', model_response_content, re.IGNORECASE)
                 
                 if score_match:
                     try:
