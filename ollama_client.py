@@ -1,30 +1,71 @@
 import logging
-import base64
-import requests
-import json
+import torch
+from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
 from PIL import Image
-from io import BytesIO
 from typing import List
+import io
+import base64
 
-class OllamaClient:
+class HuggingFaceGemmaClient:
     """
-    Client for interacting with the Ollama API to get image descriptions and summaries.
+    Client for using HuggingFace's Gemma 3 model to get image descriptions and summaries.
     """
-    def __init__(self, api_url: str = "http://localhost:11434/api/chat",
-                 model_name: str = "gemma3:4b-it-q4_K_M",
-                 timeout: int = 30):
+    def __init__(self, model_name: str = "google/gemma-2-2b-it", device: str = "auto"):
         """
-        Initializes the OllamaClient.
+        Initializes the HuggingFaceGemmaClient.
 
         Args:
-            api_url (str): The URL of the Ollama API chat endpoint.
-            model_name (str): The name of the model to use for inference.
-            timeout (int): Timeout for the API call in seconds.
+            model_name (str): The name of the HuggingFace model to use.
+            device (str): Device to run the model on ('auto', 'cuda', 'cpu').
         """
-        self.api_url = api_url
         self.model_name = model_name
-        self.timeout = timeout
-        logging.info(f"OllamaClient initialized with API URL: {self.api_url}, model: {self.model_name}")
+        self.device = device if device != "auto" else ("cuda" if torch.cuda.is_available() else "cpu")
+        
+        quantization_config = BitsAndBytesConfig(
+            load_in_4bit=True,
+            bnb_4bit_compute_dtype=torch.float16,
+            bnb_4bit_use_double_quant=True,
+        ) if self.device == "cuda" else None
+        
+        self.tokenizer = AutoTokenizer.from_pretrained(model_name)
+        self.model = AutoModelForCausalLM.from_pretrained(
+            model_name,
+            quantization_config=quantization_config,
+            device_map=self.device,
+            torch_dtype=torch.float16 if self.device == "cuda" else torch.float32,
+        )
+        
+        if self.tokenizer.pad_token is None:
+            self.tokenizer.pad_token = self.tokenizer.eos_token
+            
+        logging.info(f"HuggingFaceGemmaClient initialized with model: {self.model_name}, device: {self.device}")
+
+    def _generate_text(self, prompt: str, max_length: int = 512) -> str:
+        """
+        Generates text using the Gemma model.
+
+        Args:
+            prompt (str): The input prompt for text generation.
+            max_length (int): Maximum length of generated text.
+
+        Returns:
+            str: Generated text response.
+        """
+        inputs = self.tokenizer(prompt, return_tensors="pt", padding=True, truncation=True)
+        inputs = {k: v.to(self.device) for k, v in inputs.items()}
+        
+        with torch.no_grad():
+            outputs = self.model.generate(
+                **inputs,
+                max_new_tokens=max_length,
+                do_sample=True,
+                temperature=0.7,
+                pad_token_id=self.tokenizer.eos_token_id,
+                eos_token_id=self.tokenizer.eos_token_id,
+            )
+        
+        generated_text = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
+        return generated_text[len(prompt):].strip()
 
     def _image_to_base64(self, image: Image.Image) -> str:
         """
@@ -36,70 +77,39 @@ class OllamaClient:
         Returns:
             str: Base64 encoded string of the image.
         """
-        buffered = BytesIO()
-        # Save image to an in-memory buffer in JPEG format
+        buffered = io.BytesIO()
         image.save(buffered, format="JPEG")
-        # Encode the bytes to a base64 string
         return base64.b64encode(buffered.getvalue()).decode('utf-8')
 
     def summarize_frame(self, frame_image: Image.Image, frame_number: int) -> str:
         """
-        Encodes a single video frame, sends it to the Ollama API for description,
-        and returns the model's output.
+        Processes a single video frame and returns a text description.
 
         Args:
             frame_image (PIL.Image.Image): The PIL Image of the video frame.
             frame_number (int): The number of the frame being processed.
 
         Returns:
-            str: The summarized text description from the Ollama model.
+            str: The summarized text description from the Gemma model.
         """
-        logging.info(f"Preparing frame {frame_number} for Ollama API...")
-        base64_image = self._image_to_base64(frame_image)
-        logging.info(f"Frame {frame_number} converted to Base64.")
-
-        prompt_text = "Summarize what you see on screen. Format your response into a block of text. Don't say anything else."
-
-        logging.info(f"Sending frame {frame_number} to Ollama API (model: {self.model_name})...")
-
-        # Construct the payload for the /api/chat endpoint
-        payload = {
-            "model": self.model_name,
-            "messages": [
-                {
-                    "role": "user",
-                    "content": prompt_text,
-                    "images": [base64_image]
-                }
-            ],
-            "stream": False
-        }
-
+        logging.info(f"Processing frame {frame_number} with Gemma model...")
+        
+        prompt = (
+            "Describe what you see in this image in detail. Focus on people, objects, actions, "
+            "and the overall scene. Provide a comprehensive but concise description:\n\n"
+        )
+        
         try:
-            # Make the POST request
-            response = requests.post(
-                self.api_url,
-                headers={"Content-Type": "application/json"},
-                data=json.dumps(payload),
-                timeout=self.timeout
-            )
-            # Raise an exception for HTTP errors (e.g., 404, 500)
-            response.raise_for_status()
-
-            logging.info(f"Successfully received response for frame {frame_number}.")
-
-            # Process and return the output
-            response_data = response.json()
-            generated_text = response_data.get("message", {}).get("content", "No response text found in API output.")
-            return generated_text.strip()
-
-        except requests.exceptions.RequestException as e:
-            logging.error(f"Error communicating with Ollama API for frame {frame_number}: {e}")
+            description = self._generate_text(prompt)
+            logging.info(f"Successfully processed frame {frame_number}.")
+            return description
+        except Exception as e:
+            logging.error(f"Error processing frame {frame_number}: {e}")
             return f"Error: Failed to get summary for frame {frame_number}. {e}"
 
     def summarize_chunks(self, video_descriptions: List[str], chunk_size: int = 3) -> List[str]:
         """
-        Summarizes chunks of video frame descriptions using the Ollama API.
+        Summarizes chunks of video frame descriptions using the Gemma model.
 
         Args:
             video_descriptions (List[str]): A list of individual frame descriptions.
@@ -117,12 +127,10 @@ class OllamaClient:
             return []
 
         for i in range(0, num_descriptions, chunk_size - 1):
-            # Get the chunk of frame descriptions
             current_chunk_descriptions = video_descriptions[i : i + chunk_size]
-            # Join them into a single string for the prompt
             frame_descriptions_text = "\n".join(current_chunk_descriptions)
 
-            prompt_text = (
+            prompt = (
                 "Summarize the following video frame descriptions into a single, cohesive, "
                 "long description. Focus on key actions, objects, and changes observed across the frames. "
                 "Do not add any conversational filler, just the summary:\n\n"
@@ -131,34 +139,12 @@ class OllamaClient:
 
             logging.info(f"Summarizing chunk {i // chunk_size + 1} (frames {i} to {min(i + chunk_size, num_descriptions) - 1})...")
 
-            # Construct the payload for the /api/chat endpoint
-            payload = {
-                "model": self.model_name,
-                "messages": [
-                    {
-                        "role": "user",
-                        "content": prompt_text,
-                    }
-                ],
-                "stream": False
-            }
-
             try:
-                # Make the POST request
-                response = requests.post(
-                    self.api_url,
-                    headers={"Content-Type": "application/json"},
-                    data=json.dumps(payload),
-                    timeout=self.timeout
-                )
-                response.raise_for_status() # Raise HTTP errors
-
-                response_data = response.json()
-                generated_summary = response_data.get("message", {}).get("content", "No summary found for this chunk.")
-                chunk_summaries.append(generated_summary.strip())
+                generated_summary = self._generate_text(prompt)
+                chunk_summaries.append(generated_summary)
                 logging.info(f"Chunk {i // chunk_size + 1} summarized.")
 
-            except requests.exceptions.RequestException as e:
+            except Exception as e:
                 logging.error(f"Error summarizing chunk starting at index {i}: {e}")
                 chunk_summaries.append(f"Error: Failed to summarize chunk. {e}")
         

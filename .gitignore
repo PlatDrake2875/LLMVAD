@@ -8,6 +8,11 @@ __pycache__/
 venv/
 .venv/ 
 
+# Environment variables
+.env
+.env.local
+.env.*.local
+
 # Datasets folder (as requested)
 datasets/
 

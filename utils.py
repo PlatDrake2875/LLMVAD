@@ -1,8 +1,8 @@
-import argparse
 import os
 import logging
 import pickle
 import sys
+
 
 def setup_logging():
     """
@@ -11,13 +11,14 @@ def setup_logging():
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s [%(levelname)s] %(message)s",
-        handlers=[
-            logging.StreamHandler(sys.stdout)
-        ]
+        handlers=[logging.StreamHandler(sys.stdout)],
     )
     logging.info("Logging configured.")
 
-def _get_summaries(video_dir: str, video_path: str) -> list: # Changed return type hint to list
+
+def _get_summaries(
+    video_dir: str, video_path: str
+) -> list:
     """
     Loads pickled summaries from a specified file.
 
@@ -36,12 +37,11 @@ def _get_summaries(video_dir: str, video_path: str) -> list: # Changed return ty
         return []
 
     try:
-        with open(full_path, 'rb') as openfile:
+        with open(full_path, "rb") as openfile:
             summaries = pickle.load(openfile)
         logging.info(f"Successfully loaded summaries from: {full_path}")
     except Exception as e:
         logging.error(f"Error loading summaries from {full_path}: {e}")
-        summaries = [] # Ensure summaries is empty on error
-        
-    return summaries
+        summaries = []
 
+    return summaries
