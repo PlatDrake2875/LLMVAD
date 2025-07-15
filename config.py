@@ -5,4 +5,3 @@ DEFAULT_CONFIG = {
     "gemma_model": "google/gemma-3-4b-it",
     "device": "auto",
 }
-

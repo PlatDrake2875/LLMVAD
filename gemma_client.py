@@ -24,10 +24,6 @@ class HuggingFaceGemmaClient:
     def __init__(self, model_name: str = "google/gemma-3-4b-it", device: str = "auto"):
         """
         Initializes the HuggingFaceGemmaClient.
-
-        Args:
-            model_name (str): The name of the HuggingFace Gemma 3 model to use.
-            device (str): Device to run the model on ('auto', 'cuda', 'cpu').
         """
         self.model_name = model_name
         self.device = (
@@ -56,14 +52,6 @@ class HuggingFaceGemmaClient:
     ) -> str:
         """
         Generates text description from an image using the Gemma 3 multimodal model.
-
-        Args:
-            image (PIL.Image.Image): The input image.
-            prompt (str): The text prompt for description.
-            max_new_tokens (int): Maximum number of new tokens to generate.
-
-        Returns:
-            str: Generated text response.
         """
         messages = [
             {
@@ -105,13 +93,6 @@ class HuggingFaceGemmaClient:
     def _generate_text(self, prompt: str, max_length: int = 512) -> str:
         """
         Generates text using the Gemma 3 model (text-only).
-
-        Args:
-            prompt (str): The input prompt for text generation.
-            max_length (int): Maximum length of generated text.
-
-        Returns:
-            str: Generated text response.
         """
         messages = [{"role": "user", "content": [{"type": "text", "text": prompt}]}]
 
@@ -145,12 +126,6 @@ class HuggingFaceGemmaClient:
     def _image_to_base64(self, image: Image.Image) -> str:
         """
         Converts a PIL Image to a Base64 encoded string.
-
-        Args:
-            image (PIL.Image.Image): The PIL Image object to encode.
-
-        Returns:
-            str: Base64 encoded string of the image.
         """
         buffered = io.BytesIO()
         image.save(buffered, format="JPEG")
@@ -159,13 +134,6 @@ class HuggingFaceGemmaClient:
     def summarize_frame(self, frame_image: Image.Image, frame_number: int) -> str:
         """
         Processes a single video frame and returns a text description using Gemma 3's vision capabilities.
-
-        Args:
-            frame_image (PIL.Image.Image): The PIL Image of the video frame.
-            frame_number (int): The number of the frame being processed.
-
-        Returns:
-            str: The summarized text description from the Gemma 3 model.
         """
         logging.info(
             f"Processing frame {frame_number} with Gemma 3 multimodal model..."
@@ -189,13 +157,6 @@ class HuggingFaceGemmaClient:
     ) -> List[str]:
         """
         Summarizes chunks of video frame descriptions using the Gemma 3 model.
-
-        Args:
-            video_descriptions (List[str]): A list of individual frame descriptions.
-            chunk_size (int): The number of frame descriptions to group into one chunk for summarization.
-
-        Returns:
-            List[str]: A list of summarized texts for each chunk.
         """
         logging.info(
             f"Starting summarization of video descriptions in chunks of size {chunk_size}..."

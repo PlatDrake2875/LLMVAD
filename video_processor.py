@@ -23,12 +23,6 @@ class VideoProcessor:
     ):
         """
         Initializes the VideoProcessor.
-
-        Args:
-            video_directory (str): The directory containing the video files.
-            model_client (HuggingFaceGemmaClient): An instance of HuggingFaceGemmaClient for API communication.
-            frame_interval (int): Process every 'frame_interval'th frame.
-            summarization_chunk_size (int): The number of frame descriptions to group into one chunk for higher-level summarization.
         """
         self.video_directory = video_directory
         self.model_client = model_client
@@ -44,9 +38,6 @@ class VideoProcessor:
         """
         A generator function that yields paths to supported video files
         found in the specified directory.
-
-        Yields:
-            str: The path to a video file.
         """
         for file in sorted(os.listdir(self.video_directory)):
             if file.lower().endswith(self.supported_formats):
@@ -113,12 +104,8 @@ class VideoProcessor:
             video_basename = os.path.basename(video_file)
             file_name_without_ext = os.path.splitext(video_basename)[0]
 
-            pickle_filename = (
-                f"{file_name_without_ext}_frame_descriptions.pkl"
-            )
-            pickle_path = os.path.join(
-                self.video_directory, pickle_filename
-            )
+            pickle_filename = f"{file_name_without_ext}_frame_descriptions.pkl"
+            pickle_path = os.path.join(self.video_directory, pickle_filename)
 
             try:
                 with open(pickle_path, "wb") as f:
@@ -167,8 +154,5 @@ class VideoProcessor:
         Returns the list of all collected frame descriptions from the LAST PROCESSED video.
         Note: With _locate_video_file being a generator, this method will only return
         descriptions for the very last video processed.
-
-        Returns:
-            list[str]: A list of strings, where each string is a frame summary.
         """
         return self.descriptions

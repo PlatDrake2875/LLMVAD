@@ -18,7 +18,7 @@ def main():
     """
     setup_logging()
     logging.info("Application started.")
-    
+
     setup_huggingface_auth()
 
     parser = argparse.ArgumentParser(
@@ -82,7 +82,7 @@ def anomaly_detection(args: argparse.Namespace):
     """
     setup_logging()
     logging.info("Starting anomaly detection.")
-    
+
     setup_huggingface_auth()
 
     anomaly_detector = AnomalyDetector(model_name=args.gemma_model, device=args.device)
@@ -163,6 +163,4 @@ if __name__ == "__main__":
 
     args_anomaly = parser_anomaly.parse_args()
 
-    anomaly_detection(
-        args_anomaly
-    )
+    anomaly_detection(args_anomaly)
