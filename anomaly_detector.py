@@ -45,15 +45,23 @@ class AnomalyDetector:
             token=hf_token,
         ).eval()
 
-        self.task_prompt = (
+        self.prefix_prompt = "Analyze this video scene description "
+        self.judge_prompts = {
+            "Judge": "for any unusual or anomalous behavior.",
+            "Scene": "checking for anything suspicious in the background.",
+            "Action": "for anomalous actions, activities or behaviour.",
+        }
+
+        self.system_prompt = (
             "Rate the anomaly level in this video scene description on a scale from 0.0 to 1.0, "
-            "where 0.0 means completely normal and 1.0 means highly anomalous. "
+            "where 0.0 means normal behaviour, "
+            "0.1-0.3 means barely suspicious activity, "
+            "0.3-0.5 means somewhat anomalous behaviour,"
+            "0.5-0.7 means likely anomalous behaviour, "
+            ">0.7 means highly anomalous behaviour."
             "Provide your score as a decimal number (e.g., 0.3 or 0.8). "
             "Score: "
         )
-        self.system_prompts = {
-            "Judge": "Analyze this video scene description for any unusual or anomalous behavior.",
-        }
 
         logging.info(
             f"AnomalyDetector initialized with model: {self.model_name}, device: {self.device}"
@@ -150,14 +158,15 @@ class AnomalyDetector:
 
         for idx, summary in enumerate(summaries):
             chunk_score = 0
-            for prompt_id, system_prompt in self.system_prompts.items():
+            for prompt_id, judge_prompt in self.judge_prompts.items():
+                _system_prompt = self.prefix_prompt + judge_prompt + self.system_prompt
                 full_prompt = (
-                    f"{self.task_prompt}\n\nFrame Description:\n{summary}\n\nResponse:"
+                    f"Frame Description:\n{summary}\n\nResponse:"
                 )
 
                 logging.info(f"Processing summary chunk {idx} for anomaly judgment...")
                 try:
-                    response_content = self._generate_text(system_prompt, full_prompt)
+                    response_content = self._generate_text(_system_prompt, full_prompt)
                     logging.debug(
                         f"Raw model response for chunk {idx}: {response_content}"
                     )
