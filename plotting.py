@@ -1,6 +1,7 @@
-import matplotlib.pyplot as plt
-import os
 import logging
+import os
+
+import matplotlib.pyplot as plt
 
 
 def plot_anomaly_scores(

@@ -1,14 +1,12 @@
 import logging
 import os
-import pickle
-import sys
 from datetime import datetime
 from logging.handlers import RotatingFileHandler
 
 
 def setup_logging(log_folder: str = "logs", log_level: str = "INFO"):
     """
-    Configures a global logger to print timestamped messages to both console and file.
+    Set up logging configuration to save logs to a folder with rotation.
 
     Args:
         log_folder: Directory to save log files
@@ -24,10 +22,10 @@ def setup_logging(log_folder: str = "logs", log_level: str = "INFO"):
     # Configure logging
     logging.basicConfig(
         level=getattr(logging, log_level.upper()),
-        format="%(asctime)s [%(levelname)s] %(message)s",
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
         handlers=[
             # Console handler
-            logging.StreamHandler(sys.stdout),
+            logging.StreamHandler(),
             # File handler with rotation (max 10MB per file, keep 5 backup files)
             RotatingFileHandler(
                 log_file,
@@ -37,26 +35,9 @@ def setup_logging(log_folder: str = "logs", log_level: str = "INFO"):
             ),
         ],
     )
-    logging.info("Logging configured.")
 
+    # Create a logger for this application
+    logger = logging.getLogger("AnomalyDetection")
+    logger.setLevel(getattr(logging, log_level.upper()))
 
-def _get_summaries(video_dir: str, video_path: str) -> list:
-    """
-    Loads pickled summaries from a specified file.
-    """
-    full_path = os.path.join(video_dir, video_path)
-    summaries = []
-
-    if not os.path.exists(full_path):
-        logging.error(f"Pickle file not found at: {full_path}")
-        return []
-
-    try:
-        with open(full_path, "rb") as openfile:
-            summaries = pickle.load(openfile)
-        logging.info(f"Successfully loaded summaries from: {full_path}")
-    except Exception as e:
-        logging.error(f"Error loading summaries from {full_path}: {e}")
-        summaries = []
-
-    return summaries
+    return logger

@@ -1,12 +1,14 @@
+import base64
+import io
 import logging
+import os
+from typing import List
+
 import torch
 import torch._dynamo
-from transformers import AutoProcessor, Gemma3ForConditionalGeneration
 from PIL import Image
-from typing import List
-import io
-import base64
-import os
+from transformers import AutoProcessor, Gemma3ForConditionalGeneration
+
 from hf_auth import get_hf_token
 
 torch._dynamo.config.suppress_errors = True

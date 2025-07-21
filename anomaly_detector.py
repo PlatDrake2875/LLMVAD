@@ -1,9 +1,11 @@
 import logging
+import os
 import re
+
 import torch
 import torch._dynamo
 from transformers import AutoProcessor, Gemma3ForConditionalGeneration
-import os
+
 from hf_auth import get_hf_token
 
 torch._dynamo.config.suppress_errors = True
@@ -45,11 +47,25 @@ class AnomalyDetector:
             token=hf_token,
         ).eval()
 
+        self.messages = []
+
         self.prefix_prompt = "Analyze this video scene description "
         self.judge_prompts = {
             "Judge": "for any unusual or anomalous behavior.",
             "Scene": "checking for anything suspicious in the background.",
             "Action": "for anomalous actions, activities or behaviour.",
+        }
+
+        self.master_prompt = {
+            "The following descriptions represent different view-points from which different people evaluated the same setting in terms of anomalous behaviour."
+            "Your task is to judge those reasonings and decide which one describes the truth better in the given context."
+            "A score of 0.0 means normal behaviour, "
+            "0.1-0.3 means barely suspicious activity, "
+            "0.3-0.5 means somewhat anomalous behaviour,"
+            "0.5-0.7 means likely anomalous behaviour, "
+            ">0.7 means highly anomalous behaviour."
+            "Provide your score as a decimal number (e.g., 0.3 or 0.8). "
+            "Score: "
         }
 
         self.system_prompt = (
@@ -103,13 +119,66 @@ class AnomalyDetector:
         self, system_prompt: str, prompt: str, max_length: int = 512
     ) -> str:
         """
-        Generates text using the Gemma 3 model.
+        Generates text using the Gemma 3 model with conversation context.
         """
-        messages = [
-            {"role": "system", "content": [{"type": "text", "text": system_prompt}]},
-            {"role": "user", "content": [{"type": "text", "text": prompt}]},
+        if not self.messages:
+            self.messages = [
+                {"role": "system", "content": [{"type": "text", "text": system_prompt}]}
+            ]
+
+        self.messages.append(
+            {"role": "user", "content": [{"type": "text", "text": prompt}]}
+        )
+
+        inputs = self.processor.apply_chat_template(
+            self.messages,
+            add_generation_prompt=True,
+            tokenize=True,
+            return_dict=True,
+            return_tensors="pt",
+        ).to(
+            self.model.device,
+            dtype=torch.bfloat16 if self.device == "cuda" else torch.float32,
+        )
+
+        input_len = inputs["input_ids"].shape[-1]
+
+        with torch.inference_mode():
+            generation = self.model.generate(
+                **inputs,
+                max_new_tokens=150,
+                do_sample=True,
+                temperature=0.7,
+                use_cache=True,
+                pad_token_id=self.processor.tokenizer.eos_token_id,
+            )
+            generation = generation[0][input_len:]
+
+        decoded = self.processor.decode(generation, skip_special_tokens=True)
+        response_content = decoded.strip()
+
+        self.messages.append(
+            {
+                "role": "assistant",
+                "content": [{"type": "text", "text": response_content}],
+            }
+        )
+
+        return response_content
+
+    def _master_judge(self):
+        query_messages = [
+            {"role": "user", "content": [{"type": "text", "text": message}]}
+            for message in self.messages[:-3]
+        ]
+        system_message = [
+            {
+                "role": "system",
+                "content": [{"type": "text", "text": self.master_prompt}],
+            }
         ]
 
+        messages = system_message + query_messages
         inputs = self.processor.apply_chat_template(
             messages,
             add_generation_prompt=True,
@@ -126,7 +195,7 @@ class AnomalyDetector:
         with torch.inference_mode():
             generation = self.model.generate(
                 **inputs,
-                max_new_tokens=50,
+                max_new_tokens=150,
                 do_sample=True,
                 temperature=0.7,
                 use_cache=True,
@@ -135,17 +204,36 @@ class AnomalyDetector:
             generation = generation[0][input_len:]
 
         decoded = self.processor.decode(generation, skip_special_tokens=True)
-        return decoded.strip()
+        response_content = decoded.strip()
+
+        self.messages.append(
+            {
+                "role": "assistant",
+                "content": [{"type": "text", "text": response_content}],
+            }
+        )
+
+        return response_content
+
+    def clear_context(self):
+        """
+        Clears the conversation context.
+        """
+        self.messages = []
+        logging.info("Conversation context cleared.")
+
+    def get_context(self) -> list:
+        """
+        Returns the current conversation context.
+        """
+        return self.messages.copy()
 
     def _display_judgment(self, idx: int, model_response_content: str):
         """
-        Prints the LLM's judgment to the console.
+        Logs the LLM's judgment.
         """
-        print("\n" + "#" * 30)
-        print(f" ANOMALY JUDGMENT (SUMMARY CHUNK {idx})")
-        print("#" * 30)
-        print(model_response_content.strip())
-        print("#" * 30 + "\n")
+        judgment_text = f"\n{'#' * 30}\n ANOMALY JUDGMENT (SUMMARY CHUNK {idx})\n{'#' * 30}\n{model_response_content.strip()}\n{'#' * 30}\n"
+        logging.info(judgment_text)
 
     def judge_video(self, summaries: list[str]) -> list[float]:
         """
@@ -154,37 +242,23 @@ class AnomalyDetector:
         """
         logging.info(f"Starting anomaly detection for {len(summaries)} summaries.")
 
+        self.clear_context()
+
         anomaly_scores = []
 
         for idx, summary in enumerate(summaries):
-            chunk_score = 0
             for prompt_id, judge_prompt in self.judge_prompts.items():
                 _system_prompt = self.prefix_prompt + judge_prompt + self.system_prompt
-                full_prompt = (
-                    f"Frame Description:\n{summary}\n\nResponse:"
-                )
+                full_prompt = f"Frame Description:\n{summary}\n\nResponse:"
 
                 logging.info(f"Processing summary chunk {idx} for anomaly judgment...")
-                try:
-                    response_content = self._generate_text(_system_prompt, full_prompt)
-                    logging.debug(
-                        f"Raw model response for chunk {idx}: {response_content}"
-                    )
-                    model_response_content = prompt_id + ": " + response_content
+                response_content = self._generate_text(_system_prompt, full_prompt)
+                logging.debug(f"Raw model response for chunk {idx}: {response_content}")
+                model_response_content = prompt_id + ": " + response_content
 
-                    self._display_judgment(idx, model_response_content)
+                self._display_judgment(idx, model_response_content)
 
-                    current_score = self._extract_score_from_response(response_content)
-                    chunk_score += current_score
-                    logging.info(f"Extracted score for chunk {idx}: {current_score}")
-                except Exception as e:
-                    logging.error(f"Error processing chunk {idx}: {e}")
-                    current_score = 0.1  # Use small default instead of 0
-                    chunk_score += current_score
-
-            chunk_score /= len(self.system_prompts)
-            logging.info(f"Average chunk score: {chunk_score}")
-            anomaly_scores.append(chunk_score)
+            self._master_judge()
 
         logging.info("Anomaly detection finished for all summaries.")
         return anomaly_scores

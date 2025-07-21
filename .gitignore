@@ -1,3 +1,5 @@
+# Datasets
+/XD_Violence_*
 # Python-specific ignored files
 __pycache__/
 *.pyc

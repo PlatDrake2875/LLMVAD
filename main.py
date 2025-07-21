@@ -3,20 +3,20 @@ import logging
 import os
 import pickle
 
-from utils import setup_logging, _get_summaries
-from gemma_client import HuggingFaceGemmaClient
-from video_processor import VideoProcessor
 from anomaly_detector import AnomalyDetector
-from plotting import plot_anomaly_scores
 from config import DEFAULT_CONFIG
+from gemma_client import HuggingFaceGemmaClient
 from hf_auth import setup_huggingface_auth
+from plotting import plot_anomaly_scores
+from utils import _get_summaries, setup_logging
+from video_processor import VideoProcessor
 
 
 def main():
     """
     Main function to parse arguments, initialize classes, and start video processing.
     """
-    setup_logging()
+    setup_logging(log_folder="logs", log_level="INFO")
     logging.info("Application started.")
 
     setup_huggingface_auth()
@@ -80,7 +80,7 @@ def anomaly_detection(args: argparse.Namespace):
     Performs anomaly detection using the AnomalyDetector, plots the scores,
     and saves the raw anomaly scores locally.
     """
-    setup_logging()
+    setup_logging(log_folder="logs", log_level="INFO")
     logging.info("Starting anomaly detection.")
 
     setup_huggingface_auth()

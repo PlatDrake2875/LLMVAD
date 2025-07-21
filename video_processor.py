@@ -1,9 +1,10 @@
 import logging
 import os
-import cv2
-from PIL import Image
 import pickle
 from typing import Generator
+
+import cv2
+from PIL import Image
 
 from gemma_client import HuggingFaceGemmaClient
 
@@ -86,13 +87,8 @@ class VideoProcessor:
                     summary = self.model_client.summarize_frame(pil_image, frame_count)
                     self.descriptions.append(summary)
 
-                    print("\n" + "=" * 25)
-                    print(
-                        f"    MODEL OUTPUT (VIDEO: {os.path.basename(video_file)}, FRAME: {frame_count})"
-                    )
-                    print("=" * 25)
-                    print(summary)
-                    print("=" * 25 + "\n")
+                    model_output_text = f"\n{'=' * 25}\n    MODEL OUTPUT (VIDEO: {os.path.basename(video_file)}, FRAME: {frame_count})\n{'=' * 25}\n{summary}\n{'=' * 25}\n"
+                    logging.info(model_output_text)
 
                 frame_count += 1
 
