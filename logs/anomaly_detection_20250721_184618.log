@@ -1,0 +1,4 @@
+2025-07-21 18:46:18,960 [INFO] Logging configured.
+2025-07-21 18:46:18,960 [INFO] Application started.
+2025-07-21 18:46:18,960 [WARNING] HuggingFace API key not found or not set in .env file. Some models may not be accessible. Please set HUGGINGFACE_API_KEY in .env file.
+2025-07-21 18:46:18,961 [INFO] Parsed command-line arguments.

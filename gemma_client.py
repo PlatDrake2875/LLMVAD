@@ -34,6 +34,10 @@ class HuggingFaceGemmaClient:
             else ("cuda" if torch.cuda.is_available() else "cpu")
         )
 
+        self.system_prompt = "You are a specialist in describing actions, settings, objects, people and various details."
+        "Your task is to describe the following image in as much detail as possible whilst being unbiased."
+        "Structure your description into paragraphs."
+
         hf_token = get_hf_token()
 
         self.processor = AutoProcessor.from_pretrained(model_name, token=hf_token)
@@ -50,19 +54,22 @@ class HuggingFaceGemmaClient:
         )
 
     def _generate_text_from_image(
-        self, image: Image.Image, prompt: str, max_new_tokens: int = 512
+        self, image: Image.Image, max_new_tokens: int = 512
     ) -> str:
         """
         Generates text description from an image using the Gemma 3 multimodal model.
         """
         messages = [
             {
+                "role": "system",
+                "content": [{"type": "text", "text": self.system_prompt}],
+            },
+            {
                 "role": "user",
                 "content": [
                     {"type": "image", "image": image},
-                    {"type": "text", "text": prompt},
                 ],
-            }
+            },
         ]
 
         inputs = self.processor.apply_chat_template(
@@ -140,14 +147,8 @@ class HuggingFaceGemmaClient:
         logging.info(
             f"Processing frame {frame_number} with Gemma 3 multimodal model..."
         )
-
-        prompt = (
-            "Describe what you see in this image in detail. Focus on people, objects, actions, "
-            "and the overall scene. Provide a comprehensive but concise description of the video frame."
-        )
-
         try:
-            description = self._generate_text_from_image(frame_image, prompt)
+            description = self._generate_text_from_image(frame_image)
             logging.info(f"Successfully processed frame {frame_number}.")
             return description
         except Exception as e:

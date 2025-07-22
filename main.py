@@ -139,28 +139,29 @@ def anomaly_detection(args: argparse.Namespace):
 
 
 if __name__ == "__main__":
-    parser_anomaly = argparse.ArgumentParser(
-        description="Run anomaly detection and plot scores."
-    )
-    parser_anomaly.add_argument(
-        "--video_dir",
-        type=str,
-        default=DEFAULT_CONFIG["video_dir"],
-        help="Directory containing the video files and their pickled summaries.",
-    )
-    parser_anomaly.add_argument(
-        "--gemma_model",
-        type=str,
-        default=DEFAULT_CONFIG["gemma_model"],
-        help="Name of the HuggingFace Gemma 3 model to use (used by AnomalyDetector).",
-    )
-    parser_anomaly.add_argument(
-        "--device",
-        type=str,
-        default=DEFAULT_CONFIG["device"],
-        help="Device to run the model on ('auto', 'cuda', 'cpu') (used by AnomalyDetector).",
-    )
+    main()
+    # parser_anomaly = argparse.ArgumentParser(
+    #     description="Run anomaly detection and plot scores."
+    # )
+    # parser_anomaly.add_argument(
+    #     "--video_dir",
+    #     type=str,
+    #     default=DEFAULT_CONFIG["video_dir"],
+    #     help="Directory containing the video files and their pickled summaries.",
+    # )
+    # parser_anomaly.add_argument(
+    #     "--gemma_model",
+    #     type=str,
+    #     default=DEFAULT_CONFIG["gemma_model"],
+    #     help="Name of the HuggingFace Gemma 3 model to use (used by AnomalyDetector).",
+    # )
+    # parser_anomaly.add_argument(
+    #     "--device",
+    #     type=str,
+    #     default=DEFAULT_CONFIG["device"],
+    #     help="Device to run the model on ('auto', 'cuda', 'cpu') (used by AnomalyDetector).",
+    # )
 
-    args_anomaly = parser_anomaly.parse_args()
+    # args_anomaly = parser_anomaly.parse_args()
 
-    anomaly_detection(args_anomaly)
+    # anomaly_detection(args_anomaly)

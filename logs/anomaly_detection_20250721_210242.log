@@ -1,0 +1,76 @@
+2025-07-21 21:02:42,774 [INFO] Logging configured.
+2025-07-21 21:02:42,774 [INFO] Application started.
+2025-07-21 21:02:42,939 [INFO] Token validated for user: LinigDrake2875
+2025-07-21 21:02:42,940 [INFO] Token cached successfully
+2025-07-21 21:02:43,054 [INFO] Successfully logged in to HuggingFace
+2025-07-21 21:02:43,054 [INFO] Parsed command-line arguments.
+2025-07-21 21:02:43,298 [INFO] Token validated for user: LinigDrake2875
+2025-07-21 21:02:43,299 [INFO] Token cached successfully
+2025-07-21 21:02:51,735 [INFO] HuggingFaceGemmaClient initialized with model: google/gemma-3-4b-it, device: cuda
+2025-07-21 21:02:51,736 [INFO] VideoProcessor initialized for directory: datasets/XD_Violence_1-1004, interval: 10, summarization chunk size: 3
+2025-07-21 21:02:51,736 [INFO] Starting video processing...
+2025-07-21 21:02:51,737 [INFO] Found video file: datasets/XD_Violence_1-1004/A.Beautiful.Mind.2001__00-01-45_00-02-50_label_A.mp4
+2025-07-21 21:02:51,737 [INFO] Processing video: datasets/XD_Violence_1-1004/A.Beautiful.Mind.2001__00-01-45_00-02-50_label_A.mp4
+2025-07-21 21:02:51,748 [INFO] Processing frame number 0 from datasets/XD_Violence_1-1004/A.Beautiful.Mind.2001__00-01-45_00-02-50_label_A.mp4...
+2025-07-21 21:02:51,749 [INFO] Processing frame 0 with Gemma 3 multimodal model...
+2025-07-21 21:03:29,724 [INFO] Successfully processed frame 0.
+2025-07-21 21:03:29,724 [INFO] 
+=========================
+    MODEL OUTPUT (VIDEO: A.Beautiful.Mind.2001__00-01-45_00-02-50_label_A.mp4, FRAME: 0)
+=========================
+Okay, here’s a detailed description of the image, focusing on the specifics you requested:
+
+**Overall Scene:**
+
+The image depicts a dimly lit, intensely serious meeting taking place within a richly appointed, old-fashioned study. The color palette is dominated by deep browns, reds, and golds, creating a feeling of formality, history, and perhaps a touch of menace. The lighting is warm, casting long shadows and highlighting textures. It evokes a sense of a clandestine gathering, likely of individuals involved in significant, potentially illicit, business. 
+
+**People:**
+
+* **Central Figure:** A man, likely the focal point, sits at the head of a large wooden table. He’s wearing a grey tweed suit with a blue shirt and a red tie. His posture is relaxed yet contemplative, with his left hand resting thoughtfully on his chin. He is actively smoking a cigarette, the ember glowing faintly in the subdued light. His expression is difficult to read, conveying a mix of intelligence and perhaps a hint of weariness.
+* **Surrounding Men:** Several other men are seated around the table, all dressed in dark, well-tailored suits of varying shades – grey, dark blue, and burgundy. They are largely still and observant, with a subtle tension in their postures. Their faces are largely obscured by shadows and distance, but their expressions seem focused and attentive. They appear to be of similar age and social standing. 
+* **Background Figures:**  Two men are partially visible in the background, further emphasizing the group dynamic and the enclosed nature of the meeting. 
+
+
+**Objects:**
+
+* **Table:** A substantial, dark-stained wooden table dominates the foreground. It’s a large, rectangular surface with a visible grain, suggesting it’s a piece of furniture with history. 
+* **Ashtrays:** Two small, silver ashtrays sit on the table, holding a significant number of cigarette butts – a visual indicator of the frequent smoking within this setting.
+* **Lamp:** A brass table lamp with a warm, amber-colored shade provides the primary source of illumination. It’s positioned to the right of the central figure, casting a pool of light.
+* **Chairs:** The men are seated in upholstered chairs – dark brown leather or velvet – that appear to be classic, high-quality pieces.
+* **Blackboard:** A large chalkboard is visible in the background, partially obscured by the men. It’s covered in writing, likely notes, diagrams, or
+=========================
+
+2025-07-21 21:03:29,727 [INFO] Processing frame number 10 from datasets/XD_Violence_1-1004/A.Beautiful.Mind.2001__00-01-45_00-02-50_label_A.mp4...
+2025-07-21 21:03:29,727 [INFO] Processing frame 10 with Gemma 3 multimodal model...
+2025-07-21 21:04:06,914 [INFO] Successfully processed frame 10.
+2025-07-21 21:04:06,914 [INFO] 
+=========================
+    MODEL OUTPUT (VIDEO: A.Beautiful.Mind.2001__00-01-45_00-02-50_label_A.mp4, FRAME: 10)
+=========================
+Okay, here’s a detailed description of the image, focusing on the elements you requested:
+
+**Overall Scene:**
+
+The image presents a dimly lit, intimate interior, likely a study or meeting room. The color palette is dominated by warm browns, deep reds, and subtle golds, contributing to a feeling of established wealth and perhaps a touch of melancholy. The scene is frozen in a moment of quiet contemplation or deliberation. 
+
+**People:**
+
+*   **Central Figure:** A man, presumably the focus of the image, is seated at the head of a large wooden table. He's dressed in a grey tweed suit, a light blue tie, and appears to be thoughtfully smoking a cigarette. He holds the cigarette between his fingers, his gaze directed downwards, suggesting a pensive mood. His expression is difficult to read, but appears serious.
+*   **Surrounding Men:** There are six other men seated around the table. They are all dressed in dark suits – varying shades of grey and navy – and ties. Their postures are largely relaxed, some leaning back slightly, others with hands clasped in front of them, conveying an air of quiet authority or perhaps nervousness. Their faces are largely obscured, creating a sense of anonymity and collective presence. 
+*   **Age & Demeanor:** The men appear to be of a similar age range, likely in their late 20s to mid-40s. Their clothing and the overall setting suggest a professional or upper-class background.
+
+**Objects:**
+
+*   **Table:** A large, rectangular wooden table dominates the foreground. It’s constructed of dark, polished wood with a substantial presence. Its surface is slightly reflective, hinting at a smooth finish.
+*   **Ashtrays:** Two small, silver ashtrays are placed on the table - one near the central figure, and another slightly further back. They are filled with cigarette butts, indicating a regular habit.
+*   **Lamp:** A tall, brass lamp with a cream-colored shade sits on a side table to the right. It casts a warm, diffused light, adding to the room's atmosphere.
+*   **Chair:** There are several dark wooden chairs, most of which are occupied by the men around the table.
+
+**Setting Details:**
+
+*   **Wall:** The back wall is covered in a dark, chalkboard-like surface. It’s partially visible, with faint markings suggesting it’s been used for writing or diagrams.
+*
+=========================
+
+2025-07-21 21:04:06,917 [INFO] Processing frame number 20 from datasets/XD_Violence_1-1004/A.Beautiful.Mind.2001__00-01-45_00-02-50_label_A.mp4...
+2025-07-21 21:04:06,917 [INFO] Processing frame 20 with Gemma 3 multimodal model...

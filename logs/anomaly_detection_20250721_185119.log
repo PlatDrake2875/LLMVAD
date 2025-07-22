@@ -1,0 +1,131 @@
+2025-07-21 18:51:19,218 [INFO] Logging configured.
+2025-07-21 18:51:19,219 [INFO] Application started.
+2025-07-21 18:51:19,370 [INFO] Token validated for user: LinigDrake2875
+2025-07-21 18:51:19,370 [INFO] Token cached successfully
+2025-07-21 18:51:19,494 [INFO] Successfully logged in to HuggingFace
+2025-07-21 18:51:19,494 [INFO] Parsed command-line arguments.
+2025-07-21 18:51:19,759 [INFO] Token validated for user: LinigDrake2875
+2025-07-21 18:51:19,759 [INFO] Token cached successfully
+2025-07-21 18:52:29,935 [INFO] HuggingFaceGemmaClient initialized with model: google/gemma-3-4b-it, device: cuda
+2025-07-21 18:52:29,935 [INFO] VideoProcessor initialized for directory: datasets/XD_Violence_1-1004, interval: 10, summarization chunk size: 3
+2025-07-21 18:52:30,039 [INFO] Starting video processing...
+2025-07-21 18:52:30,040 [INFO] Found video file: datasets/XD_Violence_1-1004/A.Beautiful.Mind.2001__00-01-45_00-02-50_label_A.mp4
+2025-07-21 18:52:30,040 [INFO] Processing video: datasets/XD_Violence_1-1004/A.Beautiful.Mind.2001__00-01-45_00-02-50_label_A.mp4
+2025-07-21 18:52:37,040 [INFO] Processing frame number 0 from datasets/XD_Violence_1-1004/A.Beautiful.Mind.2001__00-01-45_00-02-50_label_A.mp4...
+2025-07-21 18:52:37,041 [INFO] Processing frame 0 with Gemma 3 multimodal model...
+2025-07-21 18:53:40,533 [INFO] Successfully processed frame 0.
+2025-07-21 18:53:40,533 [INFO] 
+=========================
+    MODEL OUTPUT (VIDEO: A.Beautiful.Mind.2001__00-01-45_00-02-50_label_A.mp4, FRAME: 0)
+=========================
+Here’s a detailed description of the image you sent:
+
+**Overall Scene:**
+
+The image depicts a dimly lit, formal meeting room. It has a distinctly 1940s or 1950s aesthetic, with dark wood paneling, a large chalkboard, and classic furniture. The lighting is warm and slightly subdued, casting long shadows and creating a sense of seriousness and importance.
+
+**People:**
+
+*   **Central Figure:** A man, likely the focal point, sits at the head of a large wooden table. He's wearing a gray suit, a blue tie, and is deeply engrossed in smoking a cigarette. He has his head tilted slightly downward, a contemplative expression on his face, and one hand resting thoughtfully on his chin.
+*   **Surrounding Men:**  Around the table are several other men, all dressed in dark suits and ties. They appear to be listening intently, some leaning forward, some with their hands clasped, and one man is holding a glass. Their expressions are serious and focused, suggesting a weighty discussion. There are about seven men visible in the frame.
+*   **Facial Expressions:** The men’s expressions are generally serious, with a hint of tension and concern.
+
+**Objects:**
+
+*   **Table:** A large, dark wooden table dominates the center of the frame. It’s polished and appears to be made of rich, dark wood.
+*   **Chairs:** Several chairs are arranged around the table. They are upholstered in a dark fabric, matching the overall color scheme.
+*   **Chalkboard:** A large chalkboard is visible in the background, suggesting this is a room for lectures or presentations.
+*   **Ashtrays:** Two ashtrays, containing cigarette butts, are placed on the table, indicating smoking is prevalent.
+*   **Lamp:** A traditional table lamp with a warm-toned shade sits on a side table, casting a pool of light.
+*   **Glasses:** One man is holding a glass, suggesting a drink is present.
+
+
+
+**Actions & Atmosphere:**
+
+The scene suggests a clandestine meeting or a serious discussion. The smoking, the formal attire, and the focused expressions all contribute to an atmosphere of intrigue and perhaps even danger. The image evokes a feeling of classic noir or a period drama. 
+
+---
+
+Would you like me to focus on a specific aspect of the image, such as the lighting, the expressions of the men, or the overall mood?
+=========================
+
+2025-07-21 18:53:40,535 [INFO] Processing frame number 10 from datasets/XD_Violence_1-1004/A.Beautiful.Mind.2001__00-01-45_00-02-50_label_A.mp4...
+2025-07-21 18:53:40,536 [INFO] Processing frame 10 with Gemma 3 multimodal model...
+2025-07-21 18:54:18,425 [INFO] Successfully processed frame 10.
+2025-07-21 18:54:18,425 [INFO] 
+=========================
+    MODEL OUTPUT (VIDEO: A.Beautiful.Mind.2001__00-01-45_00-02-50_label_A.mp4, FRAME: 10)
+=========================
+Here’s a detailed description of the image you’ve provided:
+
+**Overall Scene:**
+
+The image depicts a formal, slightly tense meeting taking place in a dimly lit, old-fashioned study. The room is dominated by a large, dark wooden table, suggesting a setting for serious discussion or deliberation. The lighting is warm, with a focus on the table and the seated figures, creating a sense of intimacy and perhaps secrecy.
+
+**People:**
+
+*   **Central Figure:** A man in a gray suit is positioned prominently in the foreground. He is holding a lit cigarette, thoughtfully considering something. His expression is serious and contemplative.
+*   **Surrounding Figures:**  There are several other men seated around the table, all dressed in classic 1940s or 50s attire – suits, ties, and some wearing bow ties. They appear to be listening intently, with a range of expressions from focused to slightly wary. Some are smoking, while one man is holding a glass of what appears to be whiskey.
+*   **Group Dynamics:** The arrangement suggests a group of men engaged in a private meeting, possibly a clandestine discussion.
+
+**Objects:**
+
+*   **Table:** A large, dark, wooden table occupies the center of the frame. It's covered in a dark cloth and has two ashtrays on it, indicating smoking.
+*   **Lighting:** A table lamp with a warm-toned shade provides the main light source, casting shadows and highlighting the faces of the men.
+*   **Furniture:** There are wooden chairs around the table, and a small wooden chair is visible in the background.
+*   **Details:** There are some scattered papers and objects on the table, adding to the impression of a serious meeting.
+
+
+**Actions & Atmosphere:**
+
+*   **Smoking:** Several men are smoking cigarettes, contributing to a slightly smoky and contemplative atmosphere.
+*   **Intense Gaze:** The central figure’s focused gaze and thoughtful expression suggest he’s deeply engaged in the conversation.
+*   **Serious Tone:** The overall scene conveys a sense of gravity, importance, and possibly secrecy. It’s reminiscent of a classic film noir or a scene from a period drama.
+
+**Overall Impression:**
+
+The image evokes a feeling of 1940s or 50s American sophistication and intrigue. It’s a classic scene, likely drawn from a film, portraying a group of men engaged in a private and potentially significant meeting.
+=========================
+
+2025-07-21 18:54:18,427 [INFO] Processing frame number 20 from datasets/XD_Violence_1-1004/A.Beautiful.Mind.2001__00-01-45_00-02-50_label_A.mp4...
+2025-07-21 18:54:18,427 [INFO] Processing frame 20 with Gemma 3 multimodal model...
+2025-07-21 18:54:56,279 [INFO] Successfully processed frame 20.
+2025-07-21 18:54:56,280 [INFO] 
+=========================
+    MODEL OUTPUT (VIDEO: A.Beautiful.Mind.2001__00-01-45_00-02-50_label_A.mp4, FRAME: 20)
+=========================
+Here's a detailed description of the image you sent:
+
+**Overall Scene:**
+
+The image depicts a dimly lit, formal meeting room, likely in an academic setting. The room has a classic, slightly aged aesthetic with dark wooden paneling and a large, dark chalkboard wall in the background. The lighting is warm and muted, casting long shadows and creating a somewhat somber atmosphere. 
+
+**People:**
+
+*   **Central Figure:** A young man, likely in his late teens or early twenties, is the focal point. He’s seated at the table, holding a lit cigarette between his fingers and thoughtfully looking down at his hand. He wears a grey suit, a blue tie, and appears contemplative.
+*   **Surrounding Figures:** Several other men are seated around a large, dark wooden table. They are dressed in suits and ties, suggesting an elite or professional group.  Their expressions are largely serious and attentive, though some seem lost in thought. They appear to be listening intently to the central figure. 
+*   **Background Figures:** In the blurred background, there are a few more men standing or partially visible, adding to the impression of a larger group. 
+
+**Objects:**
+
+*   **Table:** A substantial, dark wooden table dominates the foreground. It has a polished surface and a small ashtray with a discarded cigarette butt.
+*   **Chalkboard:** Behind the men is a large chalkboard, covered in writing, likely notes or diagrams.
+*   **Lamp:** A traditional brass desk lamp is positioned to the right of the scene, providing a small pool of light.
+*   **Cigarettes:** Several cigarette butts are scattered on the table, further reinforcing the image's vintage feel. 
+
+**Actions & Atmosphere:**
+
+*   The central figure’s action – holding and smoking a cigarette – suggests a moment of reflection or perhaps a break from a serious discussion. 
+*   The overall mood is serious and perhaps slightly tense. The posture of the men, combined with the lighting and setting, evokes a sense of importance and deliberation. 
+
+**Overall Impression:**
+
+The image captures a scene reminiscent of a classic drama, possibly from a film set in the mid-20th century. It feels like a moment of intense discussion, potentially involving strategic planning or a weighty decision. 
+
+
+Do you want me to zoom in on a specific detail or provide a different type of description (e.g., focusing on the color palette or the setting
+=========================
+
+2025-07-21 18:54:56,282 [INFO] Processing frame number 30 from datasets/XD_Violence_1-1004/A.Beautiful.Mind.2001__00-01-45_00-02-50_label_A.mp4...
+2025-07-21 18:54:56,282 [INFO] Processing frame 30 with Gemma 3 multimodal model...
