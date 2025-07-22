@@ -76,18 +76,18 @@ class VideoProcessor:
         try:
             pil_image = Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
 
-            prompt = f"""Analyze this video frame and provide a concise description of what you see. Focus on:
-- People and their actions
-- Objects and their interactions
-- Any unusual or notable activities
-- Overall scene context
+            prompt = f"""Describe what you see in this image. Focus on:
+                    - Visual elements and composition
+                    - Objects and their arrangement
+                    - Overall scene setting
+                    - General atmosphere
 
-Frame number: {frame_number}
+                    Frame number: {frame_number}
 
-Provide a clear, factual description in 1-2 sentences."""
+                    Provide a neutral, descriptive summary in 1-2 sentences."""
 
-            response = self.model_client.generate_text(
-                prompt, temperature=0.3, max_tokens=100
+            response = self.model_client.generate_text_with_image(
+                prompt, pil_image, temperature=0.3, max_tokens=300
             )
 
             return response.strip()
