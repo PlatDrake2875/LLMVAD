@@ -6,7 +6,7 @@ from typing import Generator
 import cv2
 from PIL import Image
 
-from gemma_client import HuggingFaceGemmaClient
+from .gemma_client import HuggingFaceGemmaClient
 
 
 class VideoProcessor:
@@ -103,16 +103,11 @@ class VideoProcessor:
             pickle_filename = f"{file_name_without_ext}_frame_descriptions.pkl"
             pickle_path = os.path.join(self.video_directory, pickle_filename)
 
-            try:
-                with open(pickle_path, "wb") as f:
-                    pickle.dump(self.descriptions, f)
-                logging.info(
-                    f"Individual frame descriptions for '{video_basename}' pickled to: {pickle_path}"
-                )
-            except Exception as e:
-                logging.error(
-                    f"Error pickling individual frame descriptions for '{video_basename}': {e}"
-                )
+            with open(pickle_path, "wb") as f:
+                pickle.dump(self.descriptions, f)
+            logging.info(
+                f"Individual frame descriptions for '{video_basename}' pickled to: {pickle_path}"
+            )
 
             if self.descriptions:
                 logging.info(
@@ -128,27 +123,14 @@ class VideoProcessor:
                 chunk_pickle_path = os.path.join(
                     self.video_directory, chunk_pickle_filename
                 )
-                try:
-                    with open(chunk_pickle_path, "wb") as f:
-                        pickle.dump(chunked_summaries, f)
-                    logging.info(
-                        f"Chunked summaries for '{video_basename}' pickled to: {chunk_pickle_path}"
-                    )
-                except Exception as e:
-                    logging.error(
-                        f"Error pickling chunked summaries for '{video_basename}': {e}"
-                    )
-            else:
+
+                with open(chunk_pickle_path, "wb") as f:
+                    pickle.dump(chunked_summaries, f)
+                logging.info(
+                    f"Chunked summaries for '{video_basename}' pickled to: {chunk_pickle_path}"
+                )
                 logging.warning(
                     f"No individual frame descriptions found for '{video_basename}', skipping chunk summarization and pickling."
                 )
 
         logging.info("Finished processing all videos.")
-
-    def get_all_descriptions(self) -> list[str]:
-        """
-        Returns the list of all collected frame descriptions from the LAST PROCESSED video.
-        Note: With _locate_video_file being a generator, this method will only return
-        descriptions for the very last video processed.
-        """
-        return self.descriptions

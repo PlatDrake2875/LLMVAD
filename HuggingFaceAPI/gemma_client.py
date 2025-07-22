@@ -9,7 +9,7 @@ import torch._dynamo
 from PIL import Image
 from transformers import AutoProcessor, Gemma3ForConditionalGeneration
 
-from hf_auth import get_hf_token
+from .hf_auth import get_hf_token
 
 torch._dynamo.config.suppress_errors = True
 torch._dynamo.config.disable = True
@@ -147,13 +147,10 @@ class HuggingFaceGemmaClient:
         logging.info(
             f"Processing frame {frame_number} with Gemma 3 multimodal model..."
         )
-        try:
-            description = self._generate_text_from_image(frame_image)
-            logging.info(f"Successfully processed frame {frame_number}.")
-            return description
-        except Exception as e:
-            logging.error(f"Error processing frame {frame_number}: {e}")
-            return f"Error: Failed to get summary for frame {frame_number}. {e}"
+
+        description = self._generate_text_from_image(frame_image)
+        logging.info(f"Successfully processed frame {frame_number}.")
+        return description
 
     def summarize_chunks(
         self, video_descriptions: List[str], chunk_size: int = 3

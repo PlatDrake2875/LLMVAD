@@ -14,24 +14,19 @@ def setup_logging(log_folder: str = "logs", log_level: str = "INFO"):
         log_folder: Directory to save log files
         log_level: Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
     """
-    # Create logs directory if it doesn't exist
     os.makedirs(log_folder, exist_ok=True)
 
-    # Create a timestamp for the log file
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     log_file = os.path.join(log_folder, f"anomaly_detection_{timestamp}.log")
 
-    # Configure logging
     logging.basicConfig(
         level=getattr(logging, log_level.upper()),
         format="%(asctime)s [%(levelname)s] %(message)s",
         handlers=[
-            # Console handler
             logging.StreamHandler(sys.stdout),
-            # File handler with rotation (max 10MB per file, keep 5 backup files)
             RotatingFileHandler(
                 log_file,
-                maxBytes=10 * 1024 * 1024,  # 10MB
+                maxBytes=10 * 1024 * 1024,
                 backupCount=5,
                 encoding="utf-8",
             ),
@@ -40,23 +35,22 @@ def setup_logging(log_folder: str = "logs", log_level: str = "INFO"):
     logging.info("Logging configured.")
 
 
-def _get_summaries(video_dir: str, video_path: str) -> list:
+def _get_summaries(video_dir: str, summaries_filename: str) -> list:
     """
-    Loads pickled summaries from a specified file.
+    Load pickled summaries from a file.
+
+    Args:
+        video_dir: Directory containing the summaries file
+        summaries_filename: Name of the summaries file
+
+    Returns:
+        List of summaries or empty list if file not found
     """
-    full_path = os.path.join(video_dir, video_path)
-    summaries = []
-
-    if not os.path.exists(full_path):
-        logging.error(f"Pickle file not found at: {full_path}")
-        return []
-
-    try:
-        with open(full_path, "rb") as openfile:
-            summaries = pickle.load(openfile)
-        logging.info(f"Successfully loaded summaries from: {full_path}")
-    except Exception as e:
-        logging.error(f"Error loading summaries from {full_path}: {e}")
-        summaries = []
-
-    return summaries
+    summaries_path = os.path.join(video_dir, summaries_filename)
+    if os.path.exists(summaries_path):
+        try:
+            with open(summaries_path, "rb") as f:
+                return pickle.load(f)
+        except Exception as e:
+            logging.error(f"Error loading summaries from {summaries_path}: {e}")
+    return []

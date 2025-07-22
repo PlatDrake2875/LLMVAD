@@ -15,6 +15,10 @@ venv/
 .env.local
 .env.*.local
 
+# Google Cloud credentials
+GeminiAPI/gcp_credentials.json
+*.json
+
 # Datasets folder (as requested)
 datasets/
 

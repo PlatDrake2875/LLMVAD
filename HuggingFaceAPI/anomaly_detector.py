@@ -6,7 +6,7 @@ import torch
 import torch._dynamo
 from transformers import AutoProcessor, Gemma3ForConditionalGeneration
 
-from hf_auth import get_hf_token
+from .hf_auth import get_hf_token
 
 torch._dynamo.config.suppress_errors = True
 torch._dynamo.config.disable = True

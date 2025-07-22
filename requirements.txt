@@ -8,3 +8,5 @@ opencv-python>=4.5.0
 requests>=2.25.0
 python-dotenv>=1.0.0
 huggingface-hub>=0.20.0
+google-generativeai>=0.3.0
+google-auth>=2.23.0
