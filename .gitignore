@@ -24,4 +24,8 @@ datasets/
 
 # Operating System generated files
 .DS_Store
-Thumbs.db 
+Thumbs.db
+
+# Cache and model files
+cache/
+*.joblib 
