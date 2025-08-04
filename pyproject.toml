@@ -20,6 +20,8 @@ dependencies = [
     "huggingface-hub>=0.20.0",
     "google-genai>=0.1.0",
     "google-auth>=2.23.0",
+    "joblib>=1.3.0",
+    "seaborn>=0.13.2",
 ]
 
 [project.optional-dependencies]
@@ -40,6 +42,88 @@ packages = ["."]
 line-length = 88
 target-version = ['py39']
 
+[tool.ruff]
+target-version = "py39"
+line-length = 88
+
+[tool.ruff.lint]
+select = [
+    "E",  # pycodestyle errors
+    "W",  # pycodestyle warnings
+    "F",  # pyflakes
+    "I",  # isort
+    "B",  # flake8-bugbear
+    "C4", # flake8-comprehensions
+    "UP", # pyupgrade
+    "D",  # pydocstyle
+    "ANN", # flake8-annotations
+    "BLE", # flake8-blind-except
+    "COM", # flake8-commas
+    "DTZ", # flake8-datetimez
+    "FBT", # flake8-boolean-trap
+    "G",   # flake8-logging-format
+    "LOG", # flake8-logging
+    "PTH", # flake8-use-pathlib
+    "S",   # bandit
+    "TRY", # tryceratops
+]
+ignore = [
+    "E501",  # line too long, handled by black
+    "B008",  # do not perform function calls in argument defaults
+    "C901",  # too complex
+    "S301",  # pickle security - acceptable for internal use
+    "S324",  # md5 hash - acceptable for cache keys
+    "S105",  # hardcoded password - acceptable for placeholder values
+    "LOG015",  # root logger usage - acceptable for utility functions
+    "D100",  # missing module docstring - acceptable for old_main.py
+    "D101",  # missing class docstring - acceptable for some classes
+    "D102",  # missing method docstring - acceptable for some methods
+    "D103",  # missing function docstring - acceptable for some utility functions
+    "D104",  # missing package docstring - acceptable for __init__.py
+    "D107",  # missing __init__ docstring - acceptable for some classes
+    "D200",  # one-line docstring formatting - acceptable
+    "D205",  # docstring blank line - acceptable
+    "D212",  # docstring formatting - acceptable
+    "D213",  # docstring formatting - acceptable
+    "D401",  # docstring imperative mood - acceptable
+    "D413",  # docstring section formatting - acceptable
+    "ANN201",  # missing return type annotation - acceptable for some functions
+    "ANN202",  # missing return type annotation for private functions - acceptable
+    "ANN204",  # missing return type annotation for special methods - acceptable
+    "ANN001",  # missing argument type annotation - acceptable for some functions
+    "COM812",  # trailing comma - acceptable
+    "F841",  # unused variable - acceptable in some cases
+    "G004",  # f-string in logging - acceptable
+    "PTH100",  # pathlib usage - acceptable
+    "PTH118",  # pathlib usage - acceptable
+    "PTH122",  # pathlib usage - acceptable
+    "PTH123",  # pathlib usage - acceptable
+    "PTH207",  # pathlib usage - acceptable
+    "PTH208",  # pathlib usage - acceptable
+    "PTH110",  # pathlib usage - acceptable
+    "BLE001",  # blind exception - acceptable for some cases
+    "TRY300",  # try/else structure - acceptable
+    "TRY301",  # try/else structure - acceptable
+    "TRY400",  # logging.exception - acceptable
+    "TRY401",  # logging.exception with exception object - acceptable
+    "TRY003",  # exception message formatting - acceptable
+    "DTZ005",  # datetime timezone - acceptable for simple use cases
+    "FBT001",  # boolean positional - acceptable
+    "FBT002",  # boolean positional - acceptable
+    "FBT003",  # boolean positional - acceptable
+]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py"] 
+
+[dependency-groups]
+dev = [
+    "ruff>=0.12.7",
+]
