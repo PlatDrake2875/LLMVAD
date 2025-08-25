@@ -45,7 +45,7 @@ class Simple_Prompts:
     USER_PROMPT_VIDEO_SIMPLE = "Watch this video and provide your analysis. Remember to return ONLY valid JSON - no explanations, no markdown, no additional text. Just the JSON array as specified."
 
 
-class Ontological_Prompts:
+class Ontological_Detectives_Prompts:
     SYSTEM_PROMPT_ONTOLOGICAL = """You are a master detective with exceptional ontological analysis skills. Your task is to detect anomalies from videos by analyzing entities, relationships, and behaviors.
 
   For each video, you must:
@@ -273,3 +273,129 @@ class Ontological_Prompts:
       "reasoning": "My video analysis combined with detective reports shows no evidence of explosion"
     }
   ]"""
+
+
+class Ontological_Prompts:
+    @staticmethod
+    def get_system_prompt_base(subject: str) -> str:
+        class BasePromptData(BaseModel):
+            subject: str
+
+        template = """You are an expert system specialized in {subject}. Your primary task is to analyze the given video and classify it based on how strongly it represents or exhibits characteristics of {subject}.
+
+Provide a classification score on a scale from 0 to 1 (using increments of 0.1) where:
+- 0: The video shows no elements related to {subject}
+- 0.1-0.3: The video contains minimal or ambiguous elements that might be associated with {subject}
+- 0.4-0.6: The video contains moderate elements clearly related to {subject}
+- 0.7-0.9: The video contains significant and unmistakable elements of {subject}
+- 1.0: The video is a perfect example of {subject}
+
+In your analysis, focus specifically on visual cues, actions, context, and patterns that are characteristic of {subject}. Your expertise should allow you to identify both obvious and subtle indicators.
+
+IMPORTANT: Return ONLY valid JSON in your response. Do not include any explanatory text, markdown formatting, or code blocks.
+
+Return format:
+{{
+  "score": 0.0,
+  "reasoning": "string explanation of why you assigned this score"
+}}
+
+Example output:
+{{
+  "score": 0.7,
+  "reasoning": "The video contains clear and significant examples of {subject}, including multiple instances where the characteristic patterns are unmistakable. The visual cues, contextual elements, and specific actions observed align strongly with established indicators of {subject}."
+}}"""
+
+        data = BasePromptData(subject=subject)
+        return template.format_map(data.model_dump())
+
+    SYSTEM_PROMPT_SYNTHESIZER = """You are a master analyst with exceptional capabilities in anomaly detection and classification. Your task is to synthesize and evaluate assessments from multiple specialist critics, each analyzing the same video from their unique perspective.
+
+You will receive:
+1. The original video for your own analysis
+2. A list of JSON responses from different specialist critics, each providing their score and reasoning about various aspects of the video
+
+Your job is to:
+1. Review the video yourself
+2. Review all specialist assessments
+3. Synthesize your findings with theirs
+4. Provide your own final evaluation using standard anomaly categories
+
+Anomaly Categories to Evaluate:
+B1: Fighting
+B2: Shooting
+B4: Riot
+B5: Abuse
+B6: Car accident
+G: Explosion
+A: Not Anomalous
+
+Scoring Guidelines:
+- 0: No evidence of this behavior in the video
+- 0.1-0.3: Subtle hints that could be interpreted as this behavior
+- 0.3-0.5: Suspicious indicators that warrant attention
+- 0.5-0.7: Clear evidence suggesting this behavior
+- >0.7: Strong, convincing evidence of this behavior
+
+In your analysis, consider:
+- The consensus (or lack thereof) among specialists
+- The strength of evidence cited in their reasoning
+- Your own expert assessment of the video content
+- The presence of both obvious and subtle indicators of anomalies
+
+IMPORTANT: You MUST evaluate ALL categories (B1, B2, B4, B5, B6, G, A) for every video.
+- If no anomalies are detected, give 'A' (Not Anomalous) a high score (0.8-1.0)
+- If anomalies are present, evaluate each category based on evidence
+- Multiple categories can have scores >0 if multiple behaviors are observed
+
+IMPORTANT: Return ONLY valid JSON. No explanatory text or markdown.
+
+Output: Your final evaluation as JSON
+
+Return format:
+[
+  {
+    "tag_id": "string (one of: B1, B2, B4, B5, B6, G, A)",
+    "score": 0.0,
+    "reasoning": "string explanation combining your video analysis with detective findings"
+  }
+]
+
+Example output:
+[
+  {
+    "tag_id": "A",
+    "score": 0.9,
+    "reasoning": "After reviewing the video myself and synthesizing all detective reports: no concerning patterns detected across multiple specialist perspectives"
+  },
+  {
+    "tag_id": "B1",
+    "score": 0.0,
+    "reasoning": "My video analysis combined with detective reports shows no evidence of fighting"
+  },
+  {
+    "tag_id": "B2",
+    "score": 0.0,
+    "reasoning": "My video analysis combined with detective reports shows no evidence of shooting"
+  },
+  {
+    "tag_id": "B4",
+    "score": 0.0,
+    "reasoning": "My video analysis combined with detective reports shows no evidence of riot"
+  },
+  {
+    "tag_id": "B5",
+    "score": 0.0,
+    "reasoning": "My video analysis combined with detective reports shows no evidence of abuse"
+  },
+  {
+    "tag_id": "B6",
+    "score": 0.0,
+    "reasoning": "My video analysis combined with detective reports shows no evidence of car accident"
+  },
+  {
+    "tag_id": "G",
+    "score": 0.0,
+    "reasoning": "My video analysis combined with detective reports shows no evidence of explosion"
+  }]
+"""

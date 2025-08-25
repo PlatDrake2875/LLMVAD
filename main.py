@@ -2,6 +2,7 @@ import concurrent.futures
 import hashlib
 import json
 import threading
+import time
 from enum import Enum
 from pathlib import Path
 from typing import Any, Literal
@@ -10,12 +11,14 @@ import joblib
 from google.genai import Client, types
 from tqdm import tqdm
 
-from prompts import Ontological_Prompts, Simple_Prompts
+from gemini_handler import get_client
+from prompts import Ontological_Detectives_Prompts, Ontological_Prompts, Simple_Prompts
 
 
 class EvalModes(Enum):
     VIDEO_SIMPLE: str = "video_simple"
-    ONTOLOGICAL: str = "ontological"
+    ONTOLOGICAL_DETECTIVES: str = "ontological_detectives"
+    ONTOLOGICAL_CATEGORIES: str = "ontological_categories"
 
 
 def read_dataset(
@@ -69,33 +72,46 @@ def process_single_video(args):
         judge_mode,
         user_prompt,
         semaphore,
+        max_retries,
     ) = args
 
     with semaphore:
-        try:
-            response = judge_video(
-                client=client,
-                system_prompt=system_prompt,
-                judge_mode=judge_mode,
-                user_prompt=user_prompt,
-                video_data=video_data,
-            )
+        retries = 0
+        while retries <= max_retries:
+            try:
+                response = judge_video(
+                    client=client,
+                    system_prompt=system_prompt,
+                    judge_mode=judge_mode,
+                    user_prompt=user_prompt,
+                    video_data=video_data,
+                )
 
-            print(f"\nProcessed: {video_name}")
+                print(f"\nProcessed: {video_name}")
 
-            response_data = {
-                "video_name": video_name,
-                "video_path": str(video_path),
-                "system_instruction": system_prompt,
-                "response_text": response.text,
-                "model": "gemini-2.5-flash",
-            }
+                response_data = {
+                    "video_name": video_name,
+                    "video_path": str(video_path),
+                    "system_instruction": system_prompt,
+                    "response_text": response.text,
+                    "model": "gemini-2.5-flash",
+                }
 
-            joblib.dump(response_data, cache_filepath)
-            return True, video_path
-        except Exception as e:
-            print(f"\nError processing {video_name}: {str(e)}")
-            return False, video_path
+                joblib.dump(response_data, cache_filepath)
+                return True, video_path
+            except Exception as e:
+                retries += 1
+                if retries <= max_retries:
+                    print(
+                        f"\nError processing {video_name}: {str(e)}. Retry {retries}/{max_retries}"
+                    )
+                    # Sleep with exponential backoff before retrying
+                    time.sleep(2**retries)
+                else:
+                    print(
+                        f"\nFailed processing {video_name} after {max_retries} retries: {str(e)}"
+                    )
+                    return False, video_path
 
 
 def invoke_video_understanding_llm(
@@ -106,6 +122,7 @@ def invoke_video_understanding_llm(
     judge_mode: EvalModes = EvalModes.VIDEO_SIMPLE,
     user_prompt: str = "Follow the system prompt.",
     max_concurrent: int = 3,
+    max_retries: int = 5,
 ) -> None:
     videos = read_dataset(
         max_size=max_size,
@@ -127,6 +144,7 @@ def invoke_video_understanding_llm(
             judge_mode,
             user_prompt,
             semaphore,
+            max_retries,
         )
         for video_path, (video_name, cache_filepath, video_data) in videos.items()
     ]
@@ -158,11 +176,18 @@ def judge_video(
         response = judge_video_simple(
             client=client, video_data=video_data, system_prompt=system_prompt
         )
-    elif judge_mode == EvalModes.ONTOLOGICAL:
-        response = judge_video_ontological(
+    elif judge_mode == EvalModes.ONTOLOGICAL_DETECTIVES:
+        response = judge_video_ontological_detectives(
             client=client,
             video_data=video_data,
-            system_prompt=Ontological_Prompts.SYSTEM_PROMPT_ONTOLOGICAL,
+            system_prompt=Ontological_Detectives_Prompts.SYSTEM_PROMPT_ONTOLOGICAL,
+            user_prompt=user_prompt,
+        )
+    elif judge_mode == EvalModes.ONTOLOGICAL_CATEGORIES:
+        response = judge_video_ontological_categories(
+            client=client,
+            video_data=video_data,
+            system_prompt=Ontological_Prompts.SYSTEM_PROMPT_SYNTHESIZER,
             user_prompt=user_prompt,
         )
 
@@ -194,11 +219,11 @@ def judge_video_simple(
     return response
 
 
-def judge_video_ontological(
+def judge_video_ontological_detectives(
     client: Client,
     video_data: bytes,
     model_name: str = "gemini-2.5-flash",
-    system_prompt: str = Ontological_Prompts.SYSTEM_PROMPT_ONTOLOGICAL,
+    system_prompt: str = Ontological_Detectives_Prompts.SYSTEM_PROMPT_ONTOLOGICAL,
     user_prompt: str = "Follow the system prompt.",
 ):
     detectives = client.models.generate_content(
@@ -223,8 +248,10 @@ def judge_video_ontological(
     for detective in detectives_list:
         detective_title = detective.split("<>")[0]
         detective_target = detective.split("<>")[1]
-        SYSTEM_PROMPT_DETECTIVE = Ontological_Prompts.get_system_prompt_detective(
-            detective_title, detective_target
+        SYSTEM_PROMPT_DETECTIVE = (
+            Ontological_Detectives_Prompts.get_system_prompt_detective(
+                detective_title, detective_target
+            )
         )
 
         detective_scores = client.models.generate_content(
@@ -251,7 +278,70 @@ def judge_video_ontological(
     master_scores = client.models.generate_content(
         model=model_name,
         config=types.GenerateContentConfig(
-            system_instruction=Ontological_Prompts.SYSTEM_PROMPT_MASTER,
+            system_instruction=Ontological_Detectives_Prompts.SYSTEM_PROMPT_MASTER,
+            response_mime_type="application/json",
+        ),
+        contents=[
+            types.Part.from_bytes(
+                data=video_data,
+                mime_type="video/mp4",
+            ),
+            user_prompt,
+        ],
+    )
+
+    return master_scores
+
+
+def judge_video_ontological_categories(
+    client: Client,
+    video_data: bytes,
+    model_name: str = "gemini-2.5-flash",
+    system_prompt: str = Ontological_Prompts.SYSTEM_PROMPT_SYNTHESIZER,
+    user_prompt: str = "Follow the system prompt.",
+    subjects: list[str] = None,
+):
+    subjects = [
+        "violence",
+        "nature",
+        "sports",
+        "urban",
+        "vehicles",
+        "crowds",
+        "weapons",
+        "emergency",
+        "normal activity",
+        "religious ritual",
+        "culture",
+    ]
+    subject_scores = []
+    for subject in subjects:
+        SYSTEM_PROMPT_SYSTEM = Ontological_Prompts.get_system_prompt_base(subject)
+        subject_score = client.models.generate_content(
+            model=model_name,
+            config=types.GenerateContentConfig(
+                system_instruction=SYSTEM_PROMPT_SYSTEM,
+                response_mime_type="application/json",
+            ),
+            contents=[
+                types.Part.from_bytes(
+                    data=video_data,
+                    mime_type="video/mp4",
+                ),
+                user_prompt,
+            ],
+        )
+        print(subject_score.text)
+        subject_scores.append(subject_score)
+
+    user_prompt = ""
+    for subject_score in subject_scores:
+        user_prompt += subject_score.text + "\n\n"
+
+    master_scores = client.models.generate_content(
+        model=model_name,
+        config=types.GenerateContentConfig(
+            system_instruction=system_prompt,
             response_mime_type="application/json",
         ),
         contents=[
@@ -267,9 +357,11 @@ def judge_video_ontological(
 
 
 if __name__ == "__main__":
-    # client = get_client()
-    # invoke_video_understanding_llm(
-    #     client=client, judge_mode=EvalModes.ONTOLOGICAL, max_concurrent=8
-    # )
-
-    pass
+    client = get_client()
+    invoke_video_understanding_llm(
+        client=client,
+        judge_mode=EvalModes.ONTOLOGICAL_CATEGORIES,
+        max_concurrent=8,
+        max_size=10,
+        max_retries=5,
+    )

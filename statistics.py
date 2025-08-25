@@ -1,4 +1,5 @@
 import json
+from enum import Enum
 from pathlib import Path
 
 import joblib
@@ -11,16 +12,76 @@ from sklearn.metrics import (
 from main import EvalModes
 
 
-def get_accuracy_report(cache_path: Path = None) -> dict[str, dict[str, float]]:
+def get_accuracy_report(
+    cache_path: Path = None, eval_mode: Enum = EvalModes.VIDEO_SIMPLE
+) -> dict[str, dict[str, float]]:
     if cache_path is None:
-        cache_path = Path("cache") / EvalModes.VIDEO_SIMPLE.value
+        cache_path = Path("cache") / eval_mode.value
 
     labels = ["B1", "B2", "B4", "B5", "B6", "G", "A"]
 
     predictions, expected = [], []
     for cache_file in sorted(cache_path.glob("*.joblib")):
         data = joblib.load(cache_file)
-        pred_data = json.loads(data["response_text"])
+        try:
+            # Fix JSON by removing newlines within strings
+            response_text = data["response_text"].replace("\n", " ")
+            pred_data = json.loads(response_text)
+        except json.JSONDecodeError as e:
+            print(f"JSON error in {cache_file}: {e}")
+            print("Attempting to fix malformed JSON...")
+
+            # More aggressive fix - strip out problematic characters
+            response_text = data["response_text"]
+            response_text = response_text.replace("\n", " ").replace("\r", " ")
+
+            try:
+                pred_data = json.loads(response_text)
+                print(f"Successfully fixed JSON in {cache_file}")
+            except json.JSONDecodeError as e2:
+                print(f"Failed with standard fixes, trying regex repair: {e2}")
+
+                # Even more aggressive fix using regex to repair common JSON issues
+                import re
+
+                # Fix missing commas between objects in arrays
+                response_text = re.sub(r"}\s*{", "},{", response_text)
+
+                # Fix trailing commas in arrays
+                response_text = re.sub(r",\s*]", "]", response_text)
+
+                # Fix missing quotes around keys
+                response_text = re.sub(
+                    r"([{,])\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*:", r'\1"\2":', response_text
+                )
+
+                try:
+                    pred_data = json.loads(response_text)
+                    print(f"Successfully fixed JSON with regex in {cache_file}")
+                except json.JSONDecodeError as e3:
+                    # Last resort: try to manually parse the structure
+                    print(f"All fixes failed. Attempting manual extraction: {e3}")
+                    try:
+                        # Extract tag_id and score pairs using regex
+                        tag_matches = re.findall(
+                            r'"tag_id"\s*:\s*"([^"]+)"\s*,\s*"score"\s*:\s*([0-9.]+)',
+                            response_text,
+                        )
+                        if tag_matches:
+                            pred_data = [
+                                {"tag_id": tag, "score": float(score), "reasoning": ""}
+                                for tag, score in tag_matches
+                            ]
+                            print(
+                                f"Manually extracted {len(pred_data)} tags from {cache_file}"
+                            )
+                        else:
+                            print("Manual extraction failed, skipping this file")
+                            continue
+                    except Exception as e4:
+                        print(f"All recovery methods failed: {e4}")
+                        print("Skipping this file")
+                        continue
         video_name = data["video_name"]
 
         pred = {
@@ -61,9 +122,11 @@ def get_accuracy_report(cache_path: Path = None) -> dict[str, dict[str, float]]:
     return results
 
 
-def print_accuracy_report(results=None) -> None:
+def print_accuracy_report(
+    results=None, eval_mode: Enum = EvalModes.VIDEO_SIMPLE
+) -> None:
     if results is None:
-        results = get_accuracy_report()
+        results = get_accuracy_report(eval_mode=eval_mode)
 
     print("Class\tAccuracy\tPrecision\tRecall")
     print("-" * 40)
@@ -81,9 +144,10 @@ def print_accuracy_report(results=None) -> None:
 def get_raw_predictions(
     cache_path: Path = None,
     add_noise: bool = False,
+    eval_mode: Enum = EvalModes.VIDEO_SIMPLE,
 ) -> tuple[list[dict[str, float]], list[dict[str, int]]]:
     if cache_path is None:
-        cache_path = Path("cache") / EvalModes.VIDEO_SIMPLE.value
+        cache_path = Path("cache") / eval_mode.value
 
     labels = ["B1", "B2", "B4", "B5", "B6", "G", "A"]
 
@@ -92,7 +156,65 @@ def get_raw_predictions(
 
     for cache_file in sorted(cache_path.glob("*.joblib")):
         data = joblib.load(cache_file)
-        pred_data = json.loads(data["response_text"])
+        try:
+            # Fix JSON by removing newlines within strings
+            response_text = data["response_text"].replace("\n", " ")
+            pred_data = json.loads(response_text)
+        except json.JSONDecodeError as e:
+            print(f"JSON error in {cache_file}: {e}")
+            print("Attempting to fix malformed JSON...")
+
+            # More aggressive fix - strip out problematic characters
+            response_text = data["response_text"]
+            response_text = response_text.replace("\n", " ").replace("\r", " ")
+
+            try:
+                pred_data = json.loads(response_text)
+                print(f"Successfully fixed JSON in {cache_file}")
+            except json.JSONDecodeError as e2:
+                print(f"Failed with standard fixes, trying regex repair: {e2}")
+
+                # Even more aggressive fix using regex to repair common JSON issues
+                import re
+
+                # Fix missing commas between objects in arrays
+                response_text = re.sub(r"}\s*{", "},{", response_text)
+
+                # Fix trailing commas in arrays
+                response_text = re.sub(r",\s*]", "]", response_text)
+
+                # Fix missing quotes around keys
+                response_text = re.sub(
+                    r"([{,])\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*:", r'\1"\2":', response_text
+                )
+
+                try:
+                    pred_data = json.loads(response_text)
+                    print(f"Successfully fixed JSON with regex in {cache_file}")
+                except json.JSONDecodeError as e3:
+                    # Last resort: try to manually parse the structure
+                    print(f"All fixes failed. Attempting manual extraction: {e3}")
+                    try:
+                        # Extract tag_id and score pairs using regex
+                        tag_matches = re.findall(
+                            r'"tag_id"\s*:\s*"([^"]+)"\s*,\s*"score"\s*:\s*([0-9.]+)',
+                            response_text,
+                        )
+                        if tag_matches:
+                            pred_data = [
+                                {"tag_id": tag, "score": float(score), "reasoning": ""}
+                                for tag, score in tag_matches
+                            ]
+                            print(
+                                f"Manually extracted {len(pred_data)} tags from {cache_file}"
+                            )
+                        else:
+                            print("Manual extraction failed, skipping this file")
+                            continue
+                    except Exception as e4:
+                        print(f"All recovery methods failed: {e4}")
+                        print("Skipping this file")
+                        continue
         video_name = data["video_name"]
 
         pred_scores = {}
@@ -132,16 +254,21 @@ def get_raw_predictions(
 
 
 def compute_auc_curves(
-    cache_path: Path = None, save_plot: bool = False, add_noise: bool = True
+    cache_path: Path = None,
+    save_plot: bool = False,
+    add_noise: bool = True,
+    eval_mode: Enum = EvalModes.VIDEO_SIMPLE,
 ) -> dict[str, float]:
-    raw_predictions, expected = get_raw_predictions(cache_path, add_noise=add_noise)
+    raw_predictions, expected = get_raw_predictions(
+        cache_path, add_noise=add_noise, eval_mode=eval_mode
+    )
     labels = ["B1", "B2", "B4", "B5", "B6", "G", "A"]
 
     auc_scores = {}
     plt.figure(figsize=(10, 8))
 
     # Print data distribution for debugging
-    print("\nData distribution:")
+    print(f"\nData distribution (total samples: {len(expected)}):")
     for label in labels:
         y_true = [exp[label] for exp in expected]
         positive_count = sum(y_true)
@@ -193,10 +320,12 @@ def compute_auc_curves(
 
 
 if __name__ == "__main__":
-    print_accuracy_report()
+    print_accuracy_report(eval_mode=EvalModes.ONTOLOGICAL_DETECTIVES)
 
     # Generate AUC curves without noise (original)
-    auc_scores_original = compute_auc_curves(save_plot=True, add_noise=False)
+    auc_scores_original = compute_auc_curves(
+        save_plot=True, add_noise=False, eval_mode=EvalModes.ONTOLOGICAL_DETECTIVES
+    )
     plt.savefig("roc_curves_original.png", dpi=300, bbox_inches="tight")
     print("Original ROC curve saved to roc_curves_original.png")
 
@@ -208,7 +337,9 @@ if __name__ == "__main__":
     print(f"\nOriginal Average AUC: {avg_auc:.3f}")
 
     # Generate AUC curves with noise (more realistic)
-    auc_scores_with_noise = compute_auc_curves(save_plot=True, add_noise=True)
+    auc_scores_with_noise = compute_auc_curves(
+        save_plot=True, add_noise=True, eval_mode=EvalModes.ONTOLOGICAL_DETECTIVES
+    )
     plt.savefig("roc_curves_with_noise.png", dpi=300, bbox_inches="tight")
     print("\nRealistic ROC curve saved to roc_curves_with_noise.png")
 
