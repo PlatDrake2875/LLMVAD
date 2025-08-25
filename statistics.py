@@ -1,15 +1,17 @@
 import json
 from pathlib import Path
-from typing import Dict, List, Tuple
 
 import joblib
 import matplotlib.pyplot as plt
-from sklearn.metrics import auc, roc_curve, precision_recall_curve, average_precision_score
+from sklearn.metrics import (
+    auc,
+    roc_curve,
+)
 
 from main import EvalModes
 
 
-def get_accuracy_report(cache_path: Path = None) -> Dict[str, Dict[str, float]]:
+def get_accuracy_report(cache_path: Path = None) -> dict[str, dict[str, float]]:
     if cache_path is None:
         cache_path = Path("cache") / EvalModes.VIDEO_SIMPLE.value
 
@@ -79,7 +81,7 @@ def print_accuracy_report(results=None) -> None:
 def get_raw_predictions(
     cache_path: Path = None,
     add_noise: bool = False,
-) -> Tuple[List[Dict[str, float]], List[Dict[str, int]]]:
+) -> tuple[list[dict[str, float]], list[dict[str, int]]]:
     if cache_path is None:
         cache_path = Path("cache") / EvalModes.VIDEO_SIMPLE.value
 
@@ -101,6 +103,7 @@ def get_raw_predictions(
                 # Add noise to avoid perfect separation if requested
                 if add_noise:
                     import random
+
                     if score > 0:
                         # For positive scores, add more substantial noise
                         # This simulates more realistic model uncertainty
@@ -130,7 +133,7 @@ def get_raw_predictions(
 
 def compute_auc_curves(
     cache_path: Path = None, save_plot: bool = False, add_noise: bool = True
-) -> Dict[str, float]:
+) -> dict[str, float]:
     raw_predictions, expected = get_raw_predictions(cache_path, add_noise=add_noise)
     labels = ["B1", "B2", "B4", "B5", "B6", "G", "A"]
 
@@ -191,24 +194,24 @@ def compute_auc_curves(
 
 if __name__ == "__main__":
     print_accuracy_report()
-    
+
     # Generate AUC curves without noise (original)
     auc_scores_original = compute_auc_curves(save_plot=True, add_noise=False)
     plt.savefig("roc_curves_original.png", dpi=300, bbox_inches="tight")
     print("Original ROC curve saved to roc_curves_original.png")
-    
+
     print("\nOriginal AUC Scores (without noise):")
     print("-" * 40)
     for label, score in auc_scores_original.items():
         print(f"{label}: {score:.3f}")
     avg_auc = sum(auc_scores_original.values()) / len(auc_scores_original)
     print(f"\nOriginal Average AUC: {avg_auc:.3f}")
-    
+
     # Generate AUC curves with noise (more realistic)
     auc_scores_with_noise = compute_auc_curves(save_plot=True, add_noise=True)
     plt.savefig("roc_curves_with_noise.png", dpi=300, bbox_inches="tight")
     print("\nRealistic ROC curve saved to roc_curves_with_noise.png")
-    
+
     print("\nRealistic AUC Scores (with noise):")
     print("-" * 40)
     for label, score in auc_scores_with_noise.items():
