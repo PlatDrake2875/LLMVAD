@@ -16,20 +16,23 @@ from prompts import Ontological_Detectives_Prompts, Ontological_Prompts, Simple_
 
 
 class EvalModes(Enum):
-    VIDEO_SIMPLE: str = "video_simple"
-    ONTOLOGICAL_DETECTIVES: str = "ontological_detectives"
-    ONTOLOGICAL_CATEGORIES: str = "ontological_categories"
+    VIDEO_SIMPLE = "video_simple"
+    ONTOLOGICAL_DETECTIVES = "ontological_detectives"
+    ONTOLOGICAL_CATEGORIES = "ontological_categories"
 
 
 def read_dataset(
     max_size: int,
-    judge_mode: EvalModes,
+    judge_mode: EvalModes | str,
     write_mode: Literal["fill", "overwrite"],
     system_prompt: str,
 ) -> dict[str, Any]:
     project_root = Path(__file__).parent.absolute()
     DATASET_PATH = project_root / "datasets" / "XD_Violence_1-1004"
-    CACHE_PATH = project_root / "cache" / judge_mode.value
+    judge_mode_value = (
+        judge_mode.value if isinstance(judge_mode, EvalModes) else judge_mode
+    )
+    CACHE_PATH = project_root / "cache" / judge_mode_value
 
     if not DATASET_PATH.exists():
         raise FileNotFoundError(f"Dataset path does not exist: {DATASET_PATH}")
@@ -169,8 +172,11 @@ def judge_video(
     system_prompt: str = Simple_Prompts.SYSTEM_PROMPT_VIDEO_SIMPLE,
     judge_mode: EvalModes = EvalModes.VIDEO_SIMPLE,
     user_prompt: str = "Follow the system prompt.",
-    video_data: bytes = None,
+    video_data: bytes | None = None,
 ):
+    if video_data is None:
+        raise ValueError("video_data cannot be None")
+
     if judge_mode == EvalModes.VIDEO_SIMPLE:
         user_prompt = "Follow the system prompt and return valid JSON only."
         response = judge_video_simple(
@@ -190,6 +196,8 @@ def judge_video(
             system_prompt=Ontological_Prompts.SYSTEM_PROMPT_SYNTHESIZER,
             user_prompt=user_prompt,
         )
+    else:
+        raise ValueError(f"Unknown judge_mode: {judge_mode}")
 
     return response
 
@@ -241,6 +249,8 @@ def judge_video_ontological_detectives(
         ],
     )
 
+    if detectives.text is None:
+        raise ValueError("No response text from detectives generation")
     detectives_list = json.loads(detectives.text)
     print(f"Detectives list: {detectives_list}")
 
@@ -299,21 +309,22 @@ def judge_video_ontological_categories(
     model_name: str = "gemini-2.5-flash",
     system_prompt: str = Ontological_Prompts.SYSTEM_PROMPT_SYNTHESIZER,
     user_prompt: str = "Follow the system prompt.",
-    subjects: list[str] = None,
+    subjects: list[str] | None = None,
 ):
-    subjects = [
-        "violence",
-        "nature",
-        "sports",
-        "urban",
-        "vehicles",
-        "crowds",
-        "weapons",
-        "emergency",
-        "normal activity",
-        "religious ritual",
-        "culture",
-    ]
+    if subjects is None:
+        subjects = [
+            "violence",
+            "nature",
+            "sports",
+            "urban",
+            "vehicles",
+            "crowds",
+            "weapons",
+            "emergency",
+            "normal activity",
+            "religious ritual",
+            "culture",
+        ]
     subject_scores = []
     for subject in subjects:
         SYSTEM_PROMPT_SYSTEM = Ontological_Prompts.get_system_prompt_base(subject)

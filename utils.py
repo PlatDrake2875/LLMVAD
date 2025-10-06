@@ -2,7 +2,7 @@ import hashlib
 from pathlib import Path
 from typing import Any, Literal
 
-from anomaly_detection import EvalModes
+from main import EvalModes
 
 
 def read_dataset(

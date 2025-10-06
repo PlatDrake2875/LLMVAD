@@ -1,5 +1,4 @@
 import json
-from enum import Enum
 from pathlib import Path
 
 import joblib
@@ -13,7 +12,7 @@ from main import EvalModes
 
 
 def get_accuracy_report(
-    cache_path: Path = None, eval_mode: Enum = EvalModes.VIDEO_SIMPLE
+    cache_path: Path | None = None, eval_mode: EvalModes = EvalModes.VIDEO_SIMPLE
 ) -> dict[str, dict[str, float]]:
     if cache_path is None:
         cache_path = Path("cache") / eval_mode.value
@@ -123,7 +122,7 @@ def get_accuracy_report(
 
 
 def print_accuracy_report(
-    results=None, eval_mode: Enum = EvalModes.VIDEO_SIMPLE
+    results=None, eval_mode: EvalModes = EvalModes.VIDEO_SIMPLE
 ) -> None:
     if results is None:
         results = get_accuracy_report(eval_mode=eval_mode)
@@ -142,9 +141,9 @@ def print_accuracy_report(
 
 
 def get_raw_predictions(
-    cache_path: Path = None,
+    cache_path: Path | None = None,
     add_noise: bool = False,
-    eval_mode: Enum = EvalModes.VIDEO_SIMPLE,
+    eval_mode: EvalModes = EvalModes.VIDEO_SIMPLE,
 ) -> tuple[list[dict[str, float]], list[dict[str, int]]]:
     if cache_path is None:
         cache_path = Path("cache") / eval_mode.value
@@ -254,10 +253,10 @@ def get_raw_predictions(
 
 
 def compute_auc_curves(
-    cache_path: Path = None,
+    cache_path: Path | None = None,
     save_plot: bool = False,
     add_noise: bool = True,
-    eval_mode: Enum = EvalModes.VIDEO_SIMPLE,
+    eval_mode: EvalModes = EvalModes.VIDEO_SIMPLE,
 ) -> dict[str, float]:
     raw_predictions, expected = get_raw_predictions(
         cache_path, add_noise=add_noise, eval_mode=eval_mode
