@@ -9,7 +9,8 @@ from typing import Any, Literal
 import joblib
 from tqdm import tqdm
 
-from llm_handler import LLMHandlerFactory
+from anomaly_judge import AnomalyJudge
+from llm_handler import LLMHandler, LLMHandlerFactory
 from prompts import Ontological_Detectives_Prompts, Ontological_Prompts, Simple_Prompts
 
 
@@ -116,7 +117,7 @@ def process_single_video(args):
 
 
 def invoke_video_understanding_llm(
-    handler: LLMHandlerFactory,
+    handler: LLMHandler,
     write_mode: Literal["fill", "overwrite"] = "fill",
     max_size: int = 200,
     system_prompt: str = Simple_Prompts.SYSTEM_PROMPT_VIDEO_SIMPLE,
@@ -166,7 +167,7 @@ def invoke_video_understanding_llm(
 
 
 def judge_video(
-    handler: LLMHandlerFactory,
+    handler: LLMHandler,
     system_prompt: str = Simple_Prompts.SYSTEM_PROMPT_VIDEO_SIMPLE,
     judge_mode: EvalModes = EvalModes.VIDEO_SIMPLE,
     user_prompt: str = "Follow the system prompt.",
@@ -175,20 +176,23 @@ def judge_video(
     if video_data is None:
         raise ValueError("video_data cannot be None")
 
+    # Create an AnomalyJudge instance with the LLM handler
+    judge = AnomalyJudge(handler)
+
     if judge_mode == EvalModes.VIDEO_SIMPLE:
-        response = handler.judge_video_simple(
+        response = judge.judge_video_simple(
             video_data=video_data,
             system_prompt=system_prompt,
             user_prompt="Follow the system prompt and return valid JSON only.",
         )
     elif judge_mode == EvalModes.ONTOLOGICAL_DETECTIVES:
-        response = handler.judge_video_ontological_detectives(
+        response = judge.judge_video_ontological_detectives(
             video_data=video_data,
             system_prompt=Ontological_Detectives_Prompts.SYSTEM_PROMPT_ONTOLOGICAL,
             user_prompt=user_prompt,
         )
     elif judge_mode == EvalModes.ONTOLOGICAL_CATEGORIES:
-        response = handler.judge_video_ontological_categories(
+        response = judge.judge_video_ontological_categories(
             video_data=video_data,
             system_prompt=Ontological_Prompts.SYSTEM_PROMPT_SYNTHESIZER,
             user_prompt=user_prompt,
@@ -200,7 +204,6 @@ def judge_video(
 
 
 if __name__ == "__main__":
-    # Create handler using the factory
     handler = LLMHandlerFactory.create_handler(
         provider="gemini", model_name="gemini-2.5-flash"
     )
