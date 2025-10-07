@@ -5,6 +5,7 @@ from typing import Literal
 
 from dotenv import load_dotenv
 from google.genai import Client, types
+from google.genai.types import GenerateContentResponse
 
 load_dotenv()
 
@@ -19,12 +20,12 @@ class LLMHandler(ABC):
         system_prompt: str,
         user_prompt: str,
         response_mime_type: str = "application/json",
-    ):
+    ) -> GenerateContentResponse:
         """Generate content from video data."""
         pass
 
     @abstractmethod
-    def get_client(self):
+    def get_client(self) -> Client:
         """Get the underlying client."""
         pass
 

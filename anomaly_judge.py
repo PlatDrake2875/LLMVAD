@@ -1,5 +1,7 @@
 import json
 
+from google.genai.types import GenerateContentResponse
+
 from llm_handler import LLMHandler
 from prompts import Ontological_Detectives_Prompts, Ontological_Prompts, Simple_Prompts
 
@@ -16,7 +18,7 @@ class AnomalyJudge:
         video_data: bytes,
         system_prompt: str = Simple_Prompts.SYSTEM_PROMPT_VIDEO_SIMPLE,
         user_prompt: str = "Follow the system prompt and return valid JSON only.",
-    ):
+    ) -> GenerateContentResponse:
         """Simple video judgment."""
         return self.llm_handler.generate_content(
             video_data=video_data,
@@ -30,7 +32,7 @@ class AnomalyJudge:
         video_data: bytes,
         system_prompt: str = Ontological_Detectives_Prompts.SYSTEM_PROMPT_ONTOLOGICAL,
         user_prompt: str = "Follow the system prompt.",
-    ):
+    ) -> GenerateContentResponse:
         """Ontological detectives approach for video judgment."""
         detectives = self.llm_handler.generate_content(
             video_data=video_data,
@@ -59,10 +61,14 @@ class AnomalyJudge:
                 system_prompt=detective_prompt,
                 user_prompt=user_prompt,
             )
+            if detective_scores.text is None:
+                raise ValueError(f"No response text from detective {detective_title}")
             print(detective_scores.text)
             detectives_scores.append(detective_scores)
 
-        combined_prompt = "\n\n".join(ds.text for ds in detectives_scores)
+        combined_prompt = "\n\n".join(
+            ds.text for ds in detectives_scores if ds.text is not None
+        )
 
         master_scores = self.llm_handler.generate_content(
             video_data=video_data,
@@ -78,7 +84,7 @@ class AnomalyJudge:
         system_prompt: str = Ontological_Prompts.SYSTEM_PROMPT_SYNTHESIZER,
         user_prompt: str = "Follow the system prompt.",
         subjects: list[str] | None = None,
-    ):
+    ) -> GenerateContentResponse:
         """Ontological categories approach for video judgment."""
         if subjects is None:
             subjects = [
@@ -103,10 +109,14 @@ class AnomalyJudge:
                 system_prompt=subject_prompt,
                 user_prompt=user_prompt,
             )
+            if subject_score.text is None:
+                raise ValueError(f"No response text from subject {subject}")
             print(subject_score.text)
             subject_scores.append(subject_score)
 
-        combined_prompt = "\n\n".join(ss.text for ss in subject_scores)
+        combined_prompt = "\n\n".join(
+            ss.text for ss in subject_scores if ss.text is not None
+        )
 
         master_scores = self.llm_handler.generate_content(
             video_data=video_data,
