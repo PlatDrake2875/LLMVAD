@@ -1,6 +1,5 @@
 import concurrent.futures
 import hashlib
-import json
 import threading
 import time
 from enum import Enum
@@ -8,10 +7,9 @@ from pathlib import Path
 from typing import Any, Literal
 
 import joblib
-from google.genai import Client, types
 from tqdm import tqdm
 
-from gemini_handler import get_client
+from llm_handler import LLMHandlerFactory
 from prompts import Ontological_Detectives_Prompts, Ontological_Prompts, Simple_Prompts
 
 
@@ -66,7 +64,7 @@ def read_dataset(
 
 def process_single_video(args):
     (
-        client,
+        handler,
         video_path,
         video_name,
         cache_filepath,
@@ -83,7 +81,7 @@ def process_single_video(args):
         while retries <= max_retries:
             try:
                 response = judge_video(
-                    client=client,
+                    handler=handler,
                     system_prompt=system_prompt,
                     judge_mode=judge_mode,
                     user_prompt=user_prompt,
@@ -97,7 +95,7 @@ def process_single_video(args):
                     "video_path": str(video_path),
                     "system_instruction": system_prompt,
                     "response_text": response.text,
-                    "model": "gemini-2.5-flash",
+                    "model": handler.model_name,
                 }
 
                 joblib.dump(response_data, cache_filepath)
@@ -118,7 +116,7 @@ def process_single_video(args):
 
 
 def invoke_video_understanding_llm(
-    client: Client,
+    handler: LLMHandlerFactory,
     write_mode: Literal["fill", "overwrite"] = "fill",
     max_size: int = 200,
     system_prompt: str = Simple_Prompts.SYSTEM_PROMPT_VIDEO_SIMPLE,
@@ -138,7 +136,7 @@ def invoke_video_understanding_llm(
 
     tasks = [
         (
-            client,
+            handler,
             video_path,
             video_name,
             cache_filepath,
@@ -168,7 +166,7 @@ def invoke_video_understanding_llm(
 
 
 def judge_video(
-    client: Client,
+    handler: LLMHandlerFactory,
     system_prompt: str = Simple_Prompts.SYSTEM_PROMPT_VIDEO_SIMPLE,
     judge_mode: EvalModes = EvalModes.VIDEO_SIMPLE,
     user_prompt: str = "Follow the system prompt.",
@@ -178,20 +176,19 @@ def judge_video(
         raise ValueError("video_data cannot be None")
 
     if judge_mode == EvalModes.VIDEO_SIMPLE:
-        user_prompt = "Follow the system prompt and return valid JSON only."
-        response = judge_video_simple(
-            client=client, video_data=video_data, system_prompt=system_prompt
+        response = handler.judge_video_simple(
+            video_data=video_data,
+            system_prompt=system_prompt,
+            user_prompt="Follow the system prompt and return valid JSON only.",
         )
     elif judge_mode == EvalModes.ONTOLOGICAL_DETECTIVES:
-        response = judge_video_ontological_detectives(
-            client=client,
+        response = handler.judge_video_ontological_detectives(
             video_data=video_data,
             system_prompt=Ontological_Detectives_Prompts.SYSTEM_PROMPT_ONTOLOGICAL,
             user_prompt=user_prompt,
         )
     elif judge_mode == EvalModes.ONTOLOGICAL_CATEGORIES:
-        response = judge_video_ontological_categories(
-            client=client,
+        response = handler.judge_video_ontological_categories(
             video_data=video_data,
             system_prompt=Ontological_Prompts.SYSTEM_PROMPT_SYNTHESIZER,
             user_prompt=user_prompt,
@@ -202,175 +199,14 @@ def judge_video(
     return response
 
 
-def judge_video_simple(
-    client: Client,
-    video_data: bytes,
-    model_name: str = "gemini-2.5-flash",
-    system_prompt: str = Simple_Prompts.SYSTEM_PROMPT_VIDEO_SIMPLE,
-    user_prompt: str = "Follow the system prompt and return valid JSON only.",
-):
-    response = client.models.generate_content(
-        model=model_name,
-        config=types.GenerateContentConfig(
-            system_instruction=system_prompt,
-            response_mime_type="application/json",
-        ),
-        contents=[
-            types.Part.from_bytes(
-                data=video_data,
-                mime_type="video/mp4",
-            ),
-            user_prompt,
-        ],
-    )
-
-    return response
-
-
-def judge_video_ontological_detectives(
-    client: Client,
-    video_data: bytes,
-    model_name: str = "gemini-2.5-flash",
-    system_prompt: str = Ontological_Detectives_Prompts.SYSTEM_PROMPT_ONTOLOGICAL,
-    user_prompt: str = "Follow the system prompt.",
-):
-    detectives = client.models.generate_content(
-        model=model_name,
-        config=types.GenerateContentConfig(
-            system_instruction=system_prompt,
-            response_mime_type="application/json",
-        ),
-        contents=[
-            types.Part.from_bytes(
-                data=video_data,
-                mime_type="video/mp4",
-            ),
-            user_prompt,
-        ],
-    )
-
-    if detectives.text is None:
-        raise ValueError("No response text from detectives generation")
-    detectives_list = json.loads(detectives.text)
-    print(f"Detectives list: {detectives_list}")
-
-    detectives_scores = []
-    for detective in detectives_list:
-        detective_title = detective.split("<>")[0]
-        detective_target = detective.split("<>")[1]
-        SYSTEM_PROMPT_DETECTIVE = (
-            Ontological_Detectives_Prompts.get_system_prompt_detective(
-                detective_title, detective_target
-            )
-        )
-
-        detective_scores = client.models.generate_content(
-            model=model_name,
-            config=types.GenerateContentConfig(
-                system_instruction=SYSTEM_PROMPT_DETECTIVE,
-                response_mime_type="application/json",
-            ),
-            contents=[
-                types.Part.from_bytes(
-                    data=video_data,
-                    mime_type="video/mp4",
-                ),
-                user_prompt,
-            ],
-        )
-        print(detective_scores.text)
-        detectives_scores.append(detective_scores)
-
-    user_prompt = ""
-    for detective_scores in detectives_scores:
-        user_prompt += detective_scores.text + "\n\n"
-
-    master_scores = client.models.generate_content(
-        model=model_name,
-        config=types.GenerateContentConfig(
-            system_instruction=Ontological_Detectives_Prompts.SYSTEM_PROMPT_MASTER,
-            response_mime_type="application/json",
-        ),
-        contents=[
-            types.Part.from_bytes(
-                data=video_data,
-                mime_type="video/mp4",
-            ),
-            user_prompt,
-        ],
-    )
-
-    return master_scores
-
-
-def judge_video_ontological_categories(
-    client: Client,
-    video_data: bytes,
-    model_name: str = "gemini-2.5-flash",
-    system_prompt: str = Ontological_Prompts.SYSTEM_PROMPT_SYNTHESIZER,
-    user_prompt: str = "Follow the system prompt.",
-    subjects: list[str] | None = None,
-):
-    if subjects is None:
-        subjects = [
-            "violence",
-            "nature",
-            "sports",
-            "urban",
-            "vehicles",
-            "crowds",
-            "weapons",
-            "emergency",
-            "normal activity",
-            "religious ritual",
-            "culture",
-        ]
-    subject_scores = []
-    for subject in subjects:
-        SYSTEM_PROMPT_SYSTEM = Ontological_Prompts.get_system_prompt_base(subject)
-        subject_score = client.models.generate_content(
-            model=model_name,
-            config=types.GenerateContentConfig(
-                system_instruction=SYSTEM_PROMPT_SYSTEM,
-                response_mime_type="application/json",
-            ),
-            contents=[
-                types.Part.from_bytes(
-                    data=video_data,
-                    mime_type="video/mp4",
-                ),
-                user_prompt,
-            ],
-        )
-        print(subject_score.text)
-        subject_scores.append(subject_score)
-
-    user_prompt = ""
-    for subject_score in subject_scores:
-        user_prompt += subject_score.text + "\n\n"
-
-    master_scores = client.models.generate_content(
-        model=model_name,
-        config=types.GenerateContentConfig(
-            system_instruction=system_prompt,
-            response_mime_type="application/json",
-        ),
-        contents=[
-            types.Part.from_bytes(
-                data=video_data,
-                mime_type="video/mp4",
-            ),
-            user_prompt,
-        ],
-    )
-
-    return master_scores
-
-
 if __name__ == "__main__":
-    client = get_client()
+    # Create handler using the factory
+    handler = LLMHandlerFactory.create_handler(
+        provider="gemini", model_name="gemini-2.5-flash"
+    )
+
     invoke_video_understanding_llm(
-        client=client,
+        handler=handler,
         judge_mode=EvalModes.ONTOLOGICAL_CATEGORIES,
         max_concurrent=8,
         max_size=10,
