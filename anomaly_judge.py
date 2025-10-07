@@ -1,8 +1,6 @@
 import json
 
-from google.genai.types import GenerateContentResponse
-
-from llm_handler import LLMHandler
+from llm_handler import LLMHandler, LLMResponse
 from prompts import Ontological_Detectives_Prompts, Ontological_Prompts, Simple_Prompts
 
 
@@ -18,7 +16,7 @@ class AnomalyJudge:
         video_data: bytes,
         system_prompt: str = Simple_Prompts.SYSTEM_PROMPT_VIDEO_SIMPLE,
         user_prompt: str = "Follow the system prompt and return valid JSON only.",
-    ) -> GenerateContentResponse:
+    ) -> LLMResponse:
         """Simple video judgment."""
         return self.llm_handler.generate_content(
             video_data=video_data,
@@ -32,7 +30,7 @@ class AnomalyJudge:
         video_data: bytes,
         system_prompt: str = Ontological_Detectives_Prompts.SYSTEM_PROMPT_ONTOLOGICAL,
         user_prompt: str = "Follow the system prompt.",
-    ) -> GenerateContentResponse:
+    ) -> LLMResponse:
         """Ontological detectives approach for video judgment."""
         detectives = self.llm_handler.generate_content(
             video_data=video_data,
@@ -84,7 +82,7 @@ class AnomalyJudge:
         system_prompt: str = Ontological_Prompts.SYSTEM_PROMPT_SYNTHESIZER,
         user_prompt: str = "Follow the system prompt.",
         subjects: list[str] | None = None,
-    ) -> GenerateContentResponse:
+    ) -> LLMResponse:
         """Ontological categories approach for video judgment."""
         if subjects is None:
             subjects = [

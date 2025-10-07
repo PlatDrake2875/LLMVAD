@@ -1,13 +1,21 @@
 # filepath: c:\Users\LDG\LLMVAD\gemini_handler.py
 import os
 from abc import ABC, abstractmethod
-from typing import Literal
+from typing import Literal, Protocol
 
 from dotenv import load_dotenv
 from google.genai import Client, types
-from google.genai.types import GenerateContentResponse
 
 load_dotenv()
+
+
+class LLMResponse(Protocol):
+    """Protocol for LLM response objects."""
+
+    @property
+    def text(self) -> str | None:
+        """Get the text content of the response."""
+        ...
 
 
 class LLMHandler(ABC):
@@ -20,12 +28,12 @@ class LLMHandler(ABC):
         system_prompt: str,
         user_prompt: str,
         response_mime_type: str = "application/json",
-    ) -> GenerateContentResponse:
+    ) -> LLMResponse:
         """Generate content from video data."""
         pass
 
     @abstractmethod
-    def get_client(self) -> Client:
+    def get_client(self) -> object:
         """Get the underlying client."""
         pass
 
