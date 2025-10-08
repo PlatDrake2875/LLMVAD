@@ -42,7 +42,7 @@ class GeminiLLMHandler(LLMHandler):
     """Handler for Google Gemini LLM."""
 
     def __init__(self, model_name: str = "gemini-2.5-flash"):
-        self.model_name = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+        self.model_name = model_name
         self.client = self._initialize_client()
 
     def _initialize_client(self) -> Client:
