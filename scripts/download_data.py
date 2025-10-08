@@ -1,8 +1,3 @@
-"""
-Dataset downloader wrapper for LLMVAD project.
-Calls the PowerShell download script with configurable parameters.
-"""
-
 import re
 import subprocess
 import sys

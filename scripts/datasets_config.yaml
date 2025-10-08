@@ -7,10 +7,3 @@ datasets:
     name: XD_Violence_1-1004
     zip: xd-violence.zip
     description: XD-Violence dataset for violence detection in videos
-
-  # Add more datasets here as needed
-  # example-dataset:
-  #   slug: user/dataset-name
-  #   name: Dataset_Name
-  #   zip: dataset.zip
-  #   description: Description of the dataset
