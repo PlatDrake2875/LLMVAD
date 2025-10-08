@@ -40,6 +40,7 @@ python main.py --accuracy_report
 ### Video Processing
 
 The system processes videos from the XD-Violence dataset and:
+
 1. Extracts video frames
 2. Sends to Gemini API for analysis
 3. Caches responses for efficiency
@@ -48,6 +49,7 @@ The system processes videos from the XD-Violence dataset and:
 ## Setup
 
 ### Prerequisites
+
 ```bash
 # Install uv (recommended package manager)
 curl -LsSf https://astral.sh/uv/install.sh | sh
@@ -57,8 +59,10 @@ uv sync
 ```
 
 ### Google Cloud Configuration
+
 1. Set up Google Cloud credentials in `GeminiAPI/gcp_credentials.json`
 2. Configure project settings in `main.py`:
+
    ```python
    project="devtest-autopilot"
    location="us-central1"
@@ -83,6 +87,7 @@ Overall Accuracy: 0.934
 ```
 
 ### Event Types
+
 - **B1**: Fighting
 - **B2**: Shooting  
 - **B4**: Riot
@@ -148,8 +153,3 @@ Uses the XD-Violence dataset with video files named in format:
 `MovieName__timestamp_label_EventType.mp4`
 
 Example: `A.Beautiful.Mind.2001__00-01-45_00-02-50_label_A.mp4`
-
-
-
-
-
