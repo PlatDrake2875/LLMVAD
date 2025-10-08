@@ -1,0 +1,9 @@
+# Dataset configuration for LLMVAD project
+# Each dataset entry contains the Kaggle slug, folder name, and zip filename
+
+datasets:
+  xd-violence:
+    slug: adrianpatrascu/xd-violence-1-1004
+    name: XD_Violence_1-1004
+    zip: xd-violence.zip
+    description: XD-Violence dataset for violence detection in videos
