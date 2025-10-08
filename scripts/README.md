@@ -1,6 +1,6 @@
 # Dataset Download Scripts
 
-This directory contains scripts for downloading datasets used in the LLMVAD project. All the scripts suppose your datasets are hosted on Kaggle.
+This directory contains Powershell scripts for downloading datasets used in the LLMVAD project. All the scripts suppose your datasets are hosted on Kaggle.
 
 ## Files
 
