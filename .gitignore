@@ -31,3 +31,4 @@ cache/
 *.joblib 
 
 uv.lock
+roc_*.png
