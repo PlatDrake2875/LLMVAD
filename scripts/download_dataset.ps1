@@ -1,7 +1,8 @@
-# XD-Violence dataset downloader (aria2 with live progress; WebRequest fallback with Write-Progress)
-# - Loads KAGGLE_USERNAME/KAGGLE_KEY from .env (env-only)
-# - aria2c path shows native progress; fallback shows PS progress
-# - Extracts to datasets/XD_Violence_1-1004/
+# Kaggle dataset downloader (aria2 with live progress; WebRequest fallback with Write-Progress)
+# - Loads KAGGLE_USERNAME/KAGGLE_KEY from .env file in project root
+# - Uses aria2c if available for faster multi-connection downloads
+# - Falls back to PowerShell WebRequest with progress bar if aria2c not found
+# - Extracts dataset to datasets/<DatasetName>/ folder
 
 [CmdletBinding()]
 param(
@@ -26,7 +27,7 @@ $DotEnvPath  = Join-Path $ProjectRoot '.env'
 # Kaggle dataset
 $DatasetUrl  = "https://www.kaggle.com/api/v1/datasets/download/$DatasetSlug"
 
-Write-Host "Fast XD-Violence Dataset Downloader (aria2 + progress)"
+Write-Host "Kaggle Dataset Downloader (aria2 + progress)"
 
 # --- .env loader ---
 function Import-DotEnv {
@@ -140,11 +141,11 @@ else {
 
       $status = "Downloaded: $mb MB | Speed: $spd MB/s"
       if ($eta -ne [TimeSpan]::Zero) { $status += " | ETA: " + $eta.ToString('mm\:ss') }
-      Write-Progress -Activity "Downloading XD-Violence Dataset" -Status $status -PercentComplete $pct
+      Write-Progress -Activity "Downloading Kaggle Dataset" -Status $status -PercentComplete $pct
     }
   } finally {
     $outStream.Dispose(); $inStream.Dispose(); $resp.Close()
-    Write-Progress -Activity "Downloading XD-Violence Dataset" -Completed
+    Write-Progress -Activity "Downloading Kaggle Dataset" -Completed
   }
 }
 
