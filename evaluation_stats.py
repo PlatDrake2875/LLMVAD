@@ -15,9 +15,18 @@ def get_accuracy_report(
     cache_path: Path | None = None,
     eval_mode: EvalModes = EvalModes.VIDEO_SIMPLE,
     threshold: float = 0.7,
+    use_cache: bool = True,
 ) -> dict[str, dict[str, float]]:
     if cache_path is None:
         cache_path = Path("cache") / eval_mode.value
+
+    # Check if cached results exist
+    results_cache_path = (
+        Path("cache") / "results" / f"{eval_mode.value}_threshold_{threshold}.joblib"
+    )
+    if use_cache and results_cache_path.exists():
+        print(f"Loading cached results from {results_cache_path}")
+        return joblib.load(results_cache_path)
 
     labels = ["B1", "B2", "B4", "B5", "B6", "G", "A"]
 
@@ -63,14 +72,20 @@ def get_accuracy_report(
             "recall": tp / (tp + fn) if (tp + fn) > 0 else 0.0,
         }
 
+    # Save results to cache
+    if use_cache:
+        results_cache_path.parent.mkdir(parents=True, exist_ok=True)
+        joblib.dump(results, results_cache_path)
+        print(f"Results cached to {results_cache_path}")
+
     return results
 
 
 def print_accuracy_report(
-    results=None, eval_mode: EvalModes = EvalModes.VIDEO_SIMPLE
+    results=None, eval_mode: EvalModes = EvalModes.VIDEO_SIMPLE, use_cache: bool = True
 ) -> None:
     if results is None:
-        results = get_accuracy_report(eval_mode=eval_mode)
+        results = get_accuracy_report(eval_mode=eval_mode, use_cache=use_cache)
 
     print("Class\tAccuracy\tPrecision\tRecall")
     print("-" * 40)
