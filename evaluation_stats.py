@@ -75,7 +75,6 @@ def get_raw_predictions(
     if cache_path is None:
         cache_path = Path("cache") / eval_mode.value
 
-    # Check if cached results exist
     raw_cache_path = Path("cache") / "results" / f"{eval_mode.value}_raw.joblib"
     if use_cache and raw_cache_path.exists():
         print(f"Loading cached raw predictions from {raw_cache_path}")
@@ -97,7 +96,6 @@ def get_raw_predictions(
             if "tag_id" in item and "score" in item:
                 pred_scores[item["tag_id"]] = float(item["score"])
 
-        # Ensure all labels have a score (default 0)
         for label in labels:
             if label not in pred_scores:
                 pred_scores[label] = 0.0
@@ -108,7 +106,6 @@ def get_raw_predictions(
         exp = {label: 1 if label in exp_labels else 0 for label in labels}
         expected.append(exp)
 
-    # Save results to cache
     if use_cache:
         raw_cache_path.parent.mkdir(parents=True, exist_ok=True)
         joblib.dump((raw_predictions, expected), raw_cache_path)
@@ -278,7 +275,6 @@ def compute_auc_curves(
 if __name__ == "__main__":
     print_accuracy_report(eval_mode=EvalModes.ONTOLOGICAL_CATEGORIES)
 
-    # Generate AUC curves without noise (original)
     auc_scores_original = compute_auc_curves(
         save_plot=True, eval_mode=EvalModes.ONTOLOGICAL_CATEGORIES
     )
@@ -291,17 +287,3 @@ if __name__ == "__main__":
         print(f"{label}: {score:.3f}")
     avg_auc = sum(auc_scores_original.values()) / len(auc_scores_original)
     print(f"\nOriginal Average AUC: {avg_auc:.3f}")
-
-    # Generate AUC curves with noise (more realistic)
-    auc_scores_with_noise = compute_auc_curves(
-        save_plot=True, eval_mode=EvalModes.ONTOLOGICAL_CATEGORIES
-    )
-    plt.savefig("roc_curves_with_noise.png", dpi=300, bbox_inches="tight")
-    print("\nRealistic ROC curve saved to roc_curves_with_noise.png")
-
-    print("\nRealistic AUC Scores (with noise):")
-    print("-" * 40)
-    for label, score in auc_scores_with_noise.items():
-        print(f"{label}: {score:.3f}")
-    avg_auc = sum(auc_scores_with_noise.values()) / len(auc_scores_with_noise)
-    print(f"\nRealistic Average AUC: {avg_auc:.3f}")
