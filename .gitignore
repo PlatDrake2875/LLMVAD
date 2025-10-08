@@ -29,3 +29,5 @@ Thumbs.db
 # Cache and model files
 cache/
 *.joblib 
+
+uv.lock
