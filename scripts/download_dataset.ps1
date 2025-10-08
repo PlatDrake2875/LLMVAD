@@ -4,21 +4,26 @@
 # - Extracts to datasets/XD_Violence_1-1004/
 
 [CmdletBinding()]
-param([switch]$Force)
+param(
+  [switch]$Force,
+  [string]$DatasetSlug = 'adrianpatrascu/xd-violence-1-1004',
+  [string]$DatasetName = 'XD_Violence_1-1004',
+  [string]$ZipName = 'xd-violence.zip'
+)
 
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'Continue'
 try { [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12 } catch {}
 
 # --- Paths ---
-$ProjectRoot = if ($PSScriptRoot) { $PSScriptRoot } else { Split-Path -Parent $MyInvocation.MyCommand.Path }
+$ScriptDir = if ($PSScriptRoot) { $PSScriptRoot } else { Split-Path -Parent $MyInvocation.MyCommand.Path }
+$ProjectRoot = Split-Path -Parent $ScriptDir
 $DatasetsDir = Join-Path $ProjectRoot 'datasets'
-$DatasetPath = Join-Path $DatasetsDir 'XD_Violence_1-1004'
-$ZipPath     = Join-Path $DatasetsDir 'xd-violence.zip'
+$DatasetPath = Join-Path $DatasetsDir $DatasetName
+$ZipPath     = Join-Path $DatasetsDir $ZipName
 $DotEnvPath  = Join-Path $ProjectRoot '.env'
 
 # Kaggle dataset
-$DatasetSlug = 'adrianpatrascu/xd-violence-1-1004'
 $DatasetUrl  = "https://www.kaggle.com/api/v1/datasets/download/$DatasetSlug"
 
 Write-Host "Fast XD-Violence Dataset Downloader (aria2 + progress)"
