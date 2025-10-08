@@ -11,6 +11,56 @@ from sklearn.metrics import (
 from main import EvalModes
 
 
+def get_raw_predictions(
+    cache_path: Path | None = None,
+    eval_mode: EvalModes = EvalModes.VIDEO_SIMPLE,
+    use_cache: bool = True,
+) -> tuple[list[dict[str, float]], list[dict[str, int]]]:
+    if cache_path is None:
+        cache_path = Path("cache") / eval_mode.value
+
+    # Check if cached results exist
+    raw_cache_path = Path("cache") / "results" / f"{eval_mode.value}_raw.joblib"
+    if use_cache and raw_cache_path.exists():
+        print(f"Loading cached raw predictions from {raw_cache_path}")
+        return joblib.load(raw_cache_path)
+
+    labels = ["B1", "B2", "B4", "B5", "B6", "G", "A"]
+
+    raw_predictions = []
+    expected = []
+
+    for cache_file in sorted(cache_path.glob("*.joblib")):
+        data = joblib.load(cache_file)
+        response_text = data["response_text"].replace("\n", " ")
+        pred_data = json.loads(response_text)
+        video_name = data["video_name"]
+
+        pred_scores = {}
+        for item in pred_data:
+            if "tag_id" in item and "score" in item:
+                pred_scores[item["tag_id"]] = float(item["score"])
+
+        # Ensure all labels have a score (default 0)
+        for label in labels:
+            if label not in pred_scores:
+                pred_scores[label] = 0.0
+
+        raw_predictions.append(pred_scores)
+
+        exp_labels = video_name.split("label_")[1].split(".mp4")[0].split("-")
+        exp = {label: 1 if label in exp_labels else 0 for label in labels}
+        expected.append(exp)
+
+    # Save results to cache
+    if use_cache:
+        raw_cache_path.parent.mkdir(parents=True, exist_ok=True)
+        joblib.dump((raw_predictions, expected), raw_cache_path)
+        print(f"Raw predictions cached to {raw_cache_path}")
+
+    return raw_predictions, expected
+
+
 def get_accuracy_report(
     cache_path: Path | None = None,
     eval_mode: EvalModes = EvalModes.VIDEO_SIMPLE,
@@ -20,7 +70,6 @@ def get_accuracy_report(
     if cache_path is None:
         cache_path = Path("cache") / eval_mode.value
 
-    # Check if cached results exist
     results_cache_path = (
         Path("cache") / "results" / f"{eval_mode.value}_threshold_{threshold}.joblib"
     )
@@ -28,29 +77,18 @@ def get_accuracy_report(
         print(f"Loading cached results from {results_cache_path}")
         return joblib.load(results_cache_path)
 
+    raw_predictions, expected = get_raw_predictions(
+        cache_path=cache_path, eval_mode=eval_mode, use_cache=use_cache
+    )
+
     labels = ["B1", "B2", "B4", "B5", "B6", "G", "A"]
 
-    predictions, expected = [], []
-    for cache_file in sorted(cache_path.glob("*.joblib")):
-        data = joblib.load(cache_file)
-        response_text = data["response_text"].replace("\n", " ")
-        pred_data = json.loads(response_text)
-        video_name = data["video_name"]
-
+    predictions = []
+    for raw_pred in raw_predictions:
         pred = {
-            label: 1
-            if any(
-                item.get("tag_id") == label and item.get("score", 0) > threshold
-                for item in pred_data
-            )
-            else 0
-            for label in labels
+            label: 1 if raw_pred.get(label, 0) > threshold else 0 for label in labels
         }
         predictions.append(pred)
-
-        exp_labels = video_name.split("label_")[1].split(".mp4")[0].split("-")
-        exp = {label: 1 if label in exp_labels else 0 for label in labels}
-        expected.append(exp)
 
     results = {}
     for label in labels:
@@ -72,7 +110,6 @@ def get_accuracy_report(
             "recall": tp / (tp + fn) if (tp + fn) > 0 else 0.0,
         }
 
-    # Save results to cache
     if use_cache:
         results_cache_path.parent.mkdir(parents=True, exist_ok=True)
         joblib.dump(results, results_cache_path)
@@ -100,69 +137,14 @@ def print_accuracy_report(
     print(f"\nOverall Accuracy: {overall:.3f}")
 
 
-def get_raw_predictions(
-    cache_path: Path | None = None,
-    add_noise: bool = False,
-    eval_mode: EvalModes = EvalModes.VIDEO_SIMPLE,
-) -> tuple[list[dict[str, float]], list[dict[str, int]]]:
-    if cache_path is None:
-        cache_path = Path("cache") / eval_mode.value
-
-    labels = ["B1", "B2", "B4", "B5", "B6", "G", "A"]
-
-    raw_predictions = []
-    expected = []
-
-    for cache_file in sorted(cache_path.glob("*.joblib")):
-        data = joblib.load(cache_file)
-        response_text = data["response_text"].replace("\n", " ")
-        pred_data = json.loads(response_text)
-        video_name = data["video_name"]
-
-        pred_scores = {}
-        for item in pred_data:
-            if "tag_id" in item and "score" in item:
-                score = float(item["score"])
-
-                # Add noise to avoid perfect separation if requested
-                if add_noise:
-                    import random
-
-                    if score > 0:
-                        # For positive scores, add more substantial noise
-                        # This simulates more realistic model uncertainty
-                        noise = random.uniform(-0.3, 0.1)
-                        score = max(0.4, min(0.99, score + noise))
-                    else:
-                        # For zero scores, occasionally add false positive noise
-                        # This simulates model occasionally giving false positives
-                        if random.random() < 0.1:  # 10% chance of false positive
-                            score = random.uniform(0.1, 0.4)
-
-                pred_scores[item["tag_id"]] = score
-
-        # Ensure all labels have a score (default 0)
-        for label in labels:
-            if label not in pred_scores:
-                pred_scores[label] = 0.0
-
-        raw_predictions.append(pred_scores)
-
-        exp_labels = video_name.split("label_")[1].split(".mp4")[0].split("-")
-        exp = {label: 1 if label in exp_labels else 0 for label in labels}
-        expected.append(exp)
-
-    return raw_predictions, expected
-
-
 def compute_auc_curves(
     cache_path: Path | None = None,
     save_plot: bool = False,
-    add_noise: bool = True,
     eval_mode: EvalModes = EvalModes.VIDEO_SIMPLE,
+    use_cache: bool = True,
 ) -> dict[str, float]:
     raw_predictions, expected = get_raw_predictions(
-        cache_path, add_noise=add_noise, eval_mode=eval_mode
+        cache_path, eval_mode=eval_mode, use_cache=use_cache
     )
     labels = ["B1", "B2", "B4", "B5", "B6", "G", "A"]
 
@@ -179,11 +161,10 @@ def compute_auc_curves(
             f"{label}: {positive_count}/{total_count} positive samples ({positive_count / total_count:.1%})"
         )
 
-    # Print some raw prediction scores
     print("\nSample prediction scores:")
     for label in labels:
         scores = []
-        for pred in raw_predictions[:5]:  # First 5 samples
+        for pred in raw_predictions[:5]:
             scores.append(pred.get(label, 0.0))
         print(f"{label}: {scores}")
 
@@ -195,7 +176,7 @@ def compute_auc_curves(
             score = pred.get(label, 0.0)
             y_scores.append(score)
 
-        if sum(y_true) > 0:  # Only compute ROC if there are positive samples
+        if sum(y_true) > 0:
             fpr, tpr, thresholds = roc_curve(y_true, y_scores)
             roc_auc = auc(fpr, tpr)
             auc_scores[label] = roc_auc
@@ -226,7 +207,7 @@ if __name__ == "__main__":
 
     # Generate AUC curves without noise (original)
     auc_scores_original = compute_auc_curves(
-        save_plot=True, add_noise=False, eval_mode=EvalModes.ONTOLOGICAL_CATEGORIES
+        save_plot=True, eval_mode=EvalModes.ONTOLOGICAL_CATEGORIES
     )
     plt.savefig("roc_curves_original.png", dpi=300, bbox_inches="tight")
     print("Original ROC curve saved to roc_curves_original.png")
@@ -240,7 +221,7 @@ if __name__ == "__main__":
 
     # Generate AUC curves with noise (more realistic)
     auc_scores_with_noise = compute_auc_curves(
-        save_plot=True, add_noise=True, eval_mode=EvalModes.ONTOLOGICAL_CATEGORIES
+        save_plot=True, eval_mode=EvalModes.ONTOLOGICAL_CATEGORIES
     )
     plt.savefig("roc_curves_with_noise.png", dpi=300, bbox_inches="tight")
     print("\nRealistic ROC curve saved to roc_curves_with_noise.png")
