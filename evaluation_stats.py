@@ -1,14 +1,70 @@
 import json
+from datetime import datetime
 from pathlib import Path
 
 import joblib
 import matplotlib.pyplot as plt
+import yaml
 from sklearn.metrics import (
     auc,
     roc_curve,
 )
 
 from main import EvalModes
+
+
+def _create_metadata_yaml(
+    cache_path: Path,
+    raw_predictions: list[dict[str, float]],
+    expected: list[dict[str, int]],
+    eval_mode: EvalModes,
+    threshold: float | None = None,
+) -> None:
+    """
+    Create a YAML sidecar file with metadata about the cached results.
+    """
+    labels = ["B1", "B2", "B4", "B5", "B6", "G", "A"]
+
+    total_samples = len(expected)
+
+    label_frequencies = {}
+    for label in labels:
+        count = sum(exp[label] for exp in expected)
+        label_frequencies[label] = {
+            "count": count,
+            "percentage": round(count / total_samples * 100, 2)
+            if total_samples > 0
+            else 0,
+        }
+
+    metadata = {
+        "created_at": datetime.now().isoformat(),
+        "eval_mode": eval_mode.value,
+        "total_samples": total_samples,
+        "ground_truth_distribution": label_frequencies,
+    }
+
+    if threshold is not None:
+        metadata["threshold"] = threshold
+
+        binary_predictions = {}
+        for label in labels:
+            pred_count = sum(
+                1 for pred in raw_predictions if pred.get(label, 0) > threshold
+            )
+            binary_predictions[label] = {
+                "predicted_positive": pred_count,
+                "percentage": round(pred_count / total_samples * 100, 2)
+                if total_samples > 0
+                else 0,
+            }
+        metadata["binary_predictions"] = binary_predictions
+
+    yaml_path = cache_path.with_suffix(".yaml")
+    with open(yaml_path, "w", encoding="utf-8") as f:
+        yaml.dump(metadata, f, default_flow_style=False, sort_keys=False)
+
+    print(f"Metadata saved to {yaml_path}")
 
 
 def get_raw_predictions(
@@ -57,6 +113,14 @@ def get_raw_predictions(
         raw_cache_path.parent.mkdir(parents=True, exist_ok=True)
         joblib.dump((raw_predictions, expected), raw_cache_path)
         print(f"Raw predictions cached to {raw_cache_path}")
+
+        # Create metadata YAML sidecar
+        _create_metadata_yaml(
+            cache_path=raw_cache_path,
+            raw_predictions=raw_predictions,
+            expected=expected,
+            eval_mode=eval_mode,
+        )
 
     return raw_predictions, expected
 
@@ -114,6 +178,15 @@ def get_accuracy_report(
         results_cache_path.parent.mkdir(parents=True, exist_ok=True)
         joblib.dump(results, results_cache_path)
         print(f"Results cached to {results_cache_path}")
+
+        # Create metadata YAML sidecar
+        _create_metadata_yaml(
+            cache_path=results_cache_path,
+            raw_predictions=raw_predictions,
+            expected=expected,
+            eval_mode=eval_mode,
+            threshold=threshold,
+        )
 
     return results
 
