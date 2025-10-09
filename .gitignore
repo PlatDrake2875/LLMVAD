@@ -32,3 +32,5 @@ cache/
 
 uv.lock
 roc_*.png
+
+logs/

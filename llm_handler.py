@@ -21,6 +21,8 @@ class LLMResponse(Protocol):
 class LLMHandler(ABC):
     """Abstract base class for LLM handlers."""
 
+    model_name: str
+
     @abstractmethod
     def generate_content(
         self,
