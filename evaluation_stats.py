@@ -267,7 +267,6 @@ def compute_pr_curves(
     plt.grid(True, alpha=0.3)
 
     if save_plot:
-        # Save to cache directory with eval_mode in filename
         plot_path = Path("cache") / "results" / f"{eval_mode.value}_pr_curves.png"
         plot_path.parent.mkdir(parents=True, exist_ok=True)
         plt.savefig(plot_path, dpi=300, bbox_inches="tight")
