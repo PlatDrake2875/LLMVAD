@@ -1,66 +1,16 @@
 import concurrent.futures
-import hashlib
 import threading
 import time
-from enum import Enum
-from pathlib import Path
-from typing import Any, Literal
+from typing import Literal
 
 import joblib
 from tqdm import tqdm
 
 from anomaly_judge import AnomalyJudge
+from enums import EvalModes
 from llm_handler import LLMHandler
 from prompts import Ontological_Detectives_Prompts, Ontological_Prompts, Simple_Prompts
-
-
-class EvalModes(Enum):
-    VIDEO_SIMPLE = "video_simple"
-    ONTOLOGICAL_DETECTIVES = "ontological_detectives"
-    ONTOLOGICAL_CATEGORIES = "ontological_categories"
-
-
-def read_dataset(
-    max_size: int,
-    judge_mode: EvalModes | str,
-    write_mode: Literal["fill", "overwrite"],
-    system_prompt: str,
-) -> dict[str, Any]:
-    project_root = Path(__file__).parent.absolute()
-    DATASET_PATH = project_root / "datasets" / "XD_Violence_1-1004"
-    judge_mode_value = (
-        judge_mode.value if isinstance(judge_mode, EvalModes) else judge_mode
-    )
-    CACHE_PATH = project_root / "cache" / judge_mode_value
-
-    if not DATASET_PATH.exists():
-        raise FileNotFoundError(f"Dataset path does not exist: {DATASET_PATH}")
-
-    if not DATASET_PATH.is_dir():
-        raise NotADirectoryError(f"Dataset path is not a directory: {DATASET_PATH}")
-
-    CACHE_PATH.mkdir(parents=True, exist_ok=True)
-
-    videos_data = {}
-    for video_name in sorted(DATASET_PATH.iterdir())[:max_size]:
-        if not video_name.name.endswith((".mp4", ".avi", ".mov", ".mkv")):
-            continue
-        video_path = DATASET_PATH / video_name.name
-        video_base_name = video_name.stem
-
-        prompt_hash = hashlib.sha256(system_prompt.encode()).hexdigest()[:8]
-        cache_filename = f"{video_base_name}_{prompt_hash}.joblib"
-        cache_filepath = CACHE_PATH / cache_filename
-
-        if write_mode == "fill" and cache_filepath.exists():
-            continue
-
-        with video_path.open("rb") as video_file:
-            video_data = video_file.read()
-
-        videos_data[video_path] = [video_base_name, cache_filepath, video_data]
-
-    return videos_data
+from utils import read_dataset
 
 
 def process_single_video(args):
@@ -125,12 +75,14 @@ def invoke_video_understanding_llm(
     user_prompt: str = "Follow the system prompt.",
     max_concurrent: int = 3,
     max_retries: int = 5,
+    sampling_strategy: Literal["sequential", "balanced", "focused"] = "sequential",
 ) -> None:
     videos = read_dataset(
         max_size=max_size,
         judge_mode=judge_mode,
         write_mode=write_mode,
         system_prompt=system_prompt,
+        sampling_strategy=sampling_strategy,
     )
 
     semaphore = threading.Semaphore(max_concurrent)
