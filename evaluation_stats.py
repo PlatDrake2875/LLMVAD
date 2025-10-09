@@ -7,7 +7,8 @@ import matplotlib.pyplot as plt
 import yaml
 from sklearn.metrics import (
     auc,
-    roc_curve,
+    average_precision_score,
+    precision_recall_curve,
 )
 
 from main import EvalModes
@@ -111,7 +112,6 @@ def get_raw_predictions(
         joblib.dump((raw_predictions, expected), raw_cache_path)
         print(f"Raw predictions cached to {raw_cache_path}")
 
-        # Create metadata YAML sidecar
         _create_metadata_yaml(
             cache_path=raw_cache_path,
             raw_predictions=raw_predictions,
@@ -207,7 +207,7 @@ def print_accuracy_report(
     print(f"\nOverall Accuracy: {overall:.3f}")
 
 
-def compute_auc_curves(
+def compute_pr_curves(
     cache_path: Path | None = None,
     save_plot: bool = False,
     eval_mode: EvalModes = EvalModes.VIDEO_SIMPLE,
@@ -218,10 +218,9 @@ def compute_auc_curves(
     )
     labels = ["B1", "B2", "B4", "B5", "B6", "G", "A"]
 
-    auc_scores = {}
+    ap_scores = {}
     plt.figure(figsize=(10, 8))
 
-    # Print data distribution for debugging
     print(f"\nData distribution (total samples: {len(expected)}):")
     for label in labels:
         y_true = [exp[label] for exp in expected]
@@ -247,43 +246,48 @@ def compute_auc_curves(
             y_scores.append(score)
 
         if sum(y_true) > 0:
-            fpr, tpr, thresholds = roc_curve(y_true, y_scores)
-            roc_auc = auc(fpr, tpr)
-            auc_scores[label] = roc_auc
+            precision, recall, _ = precision_recall_curve(y_true, y_scores)
+            ap = average_precision_score(y_true, y_scores)
+            ap_scores[label] = ap
 
-            plt.plot(fpr, tpr, label=f"{label} (AUC = {roc_auc:.3f})")
+            pr_auc = auc(recall, precision)
+
+            plt.plot(
+                recall, precision, label=f"{label} (AP = {ap:.3f}, AUC = {pr_auc:.3f})"
+            )
         else:
-            auc_scores[label] = 0.0
+            ap_scores[label] = 0.0
 
-    plt.plot([0, 1], [0, 1], "k--")
     plt.xlim([0.0, 1.0])
     plt.ylim([0.0, 1.05])
-    plt.xlabel("False Positive Rate")
-    plt.ylabel("True Positive Rate")
-    plt.title("Receiver Operating Characteristic (ROC) Curves")
-    plt.legend(loc="lower right")
+    plt.xlabel("Recall")
+    plt.ylabel("Precision")
+    plt.title(f"Precision-Recall Curves ({eval_mode.value})")
+    plt.legend(loc="best")
+    plt.grid(True, alpha=0.3)
 
     if save_plot:
-        plt.savefig("roc_curves.png", dpi=300, bbox_inches="tight")
-        print("ROC curve saved to roc_curves.png")
+        # Save to cache directory with eval_mode in filename
+        plot_path = Path("cache") / "results" / f"{eval_mode.value}_pr_curves.png"
+        plot_path.parent.mkdir(parents=True, exist_ok=True)
+        plt.savefig(plot_path, dpi=300, bbox_inches="tight")
+        print(f"PR curve saved to {plot_path}")
     else:
         plt.show()
 
-    return auc_scores
+    return ap_scores
 
 
 if __name__ == "__main__":
-    print_accuracy_report(eval_mode=EvalModes.ONTOLOGICAL_CATEGORIES)
+    eval_mode = EvalModes.ONTOLOGICAL_CATEGORIES
 
-    auc_scores_original = compute_auc_curves(
-        save_plot=True, eval_mode=EvalModes.ONTOLOGICAL_CATEGORIES
-    )
-    plt.savefig("roc_curves_original.png", dpi=300, bbox_inches="tight")
-    print("Original ROC curve saved to roc_curves_original.png")
+    print_accuracy_report(eval_mode=eval_mode)
 
-    print("\nOriginal AUC Scores (without noise):")
+    ap_scores = compute_pr_curves(save_plot=True, eval_mode=eval_mode)
+
+    print("\nAverage Precision (AP) Scores:")
     print("-" * 40)
-    for label, score in auc_scores_original.items():
+    for label, score in ap_scores.items():
         print(f"{label}: {score:.3f}")
-    avg_auc = sum(auc_scores_original.values()) / len(auc_scores_original)
-    print(f"\nOriginal Average AUC: {avg_auc:.3f}")
+    mean_ap = sum(ap_scores.values()) / len(ap_scores)
+    print(f"\nMean Average Precision (mAP): {mean_ap:.3f}")

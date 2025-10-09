@@ -111,6 +111,7 @@ def main():
     """Main entry point for CLI usage."""
     import argparse
 
+    datasets = {}
     try:
         datasets = load_dataset_config()
         available_datasets = list(datasets.keys())
