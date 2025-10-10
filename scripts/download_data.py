@@ -1,3 +1,17 @@
+"""
+Cross-platform dataset downloader for LLMVAD project.
+
+This script automatically detects the operating system and uses the appropriate
+download script:
+- Windows: download_dataset.ps1 (PowerShell)
+- Linux/macOS: download_dataset.sh (Bash)
+
+Both scripts support Kaggle dataset downloads with progress indicators and
+fallback mechanisms (aria2c preferred, curl/WebRequest as fallback).
+"""
+
+import os
+import platform
 import re
 import subprocess
 import sys
@@ -49,11 +63,17 @@ def download_dataset(
 ) -> int:
     _validate_dataset_params(dataset_slug, dataset_name, zip_name)
 
+    # Determine which script to use based on the operating system
     if script_path is None:
-        script_path = Path(__file__).parent / "download_dataset.ps1"
+        system = platform.system().lower()
+        if system == "windows":
+            script_path = Path(__file__).parent / "download_dataset.ps1"
+        else:  # Linux, macOS, and other Unix-like systems
+            script_path = Path(__file__).parent / "download_dataset.sh"
 
     if not script_path.exists():
-        print(f"Error: PowerShell script not found at {script_path}", file=sys.stderr)
+        script_name = script_path.name
+        print(f"Error: Script not found at {script_path}", file=sys.stderr)
         return 1
 
     try:
@@ -62,22 +82,36 @@ def download_dataset(
         print(f"Error resolving script path: {e}", file=sys.stderr)
         return 1
 
-    cmd = [
-        "powershell.exe",
-        "-ExecutionPolicy",
-        "Bypass",
-        "-File",
-        str(script_path),
-        "-DatasetSlug",
-        dataset_slug,
-        "-DatasetName",
-        dataset_name,
-        "-ZipName",
-        zip_name,
-    ]
-
-    if force:
-        cmd.append("-Force")
+    # Build command based on script type
+    system = platform.system().lower()
+    if system == "windows" and script_path.suffix == ".ps1":
+        cmd = [
+            "powershell.exe",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-File",
+            str(script_path),
+            "-DatasetSlug",
+            dataset_slug,
+            "-DatasetName",
+            dataset_name,
+            "-ZipName",
+            zip_name,
+        ]
+        if force:
+            cmd.append("-Force")
+    else:  # Unix-like systems with bash script
+        cmd = [
+            str(script_path),
+            "--dataset-slug",
+            dataset_slug,
+            "--dataset-name",
+            dataset_name,
+            "--zip-name",
+            zip_name,
+        ]
+        if force:
+            cmd.append("--force")
 
     print(f"Downloading dataset: {dataset_slug}")
     print(f"Target folder: datasets/{dataset_name}")
@@ -87,7 +121,7 @@ def download_dataset(
         result = subprocess.run(cmd, check=False)  # noqa: S603
         return result.returncode
     except (subprocess.SubprocessError, OSError) as e:
-        print(f"Error running PowerShell script: {e}", file=sys.stderr)
+        print(f"Error running script: {e}", file=sys.stderr)
         return 1
 
 
@@ -120,7 +154,7 @@ def main():
         available_datasets = []
 
     parser = argparse.ArgumentParser(
-        description="Download datasets for LLMVAD project",
+        description="Download datasets for LLMVAD project (supports Windows and Linux)",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
@@ -132,6 +166,10 @@ Examples:
 
   # Custom dataset
   python download_data.py custom --slug user/dataset --name MyDataset --zip dataset.zip
+
+Note: 
+  - On Windows: Uses download_dataset.ps1 (PowerShell script)
+  - On Linux/macOS: Uses download_dataset.sh (Bash script)
         """,
     )
 
