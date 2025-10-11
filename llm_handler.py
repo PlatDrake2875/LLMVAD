@@ -255,26 +255,18 @@ class VLLMHandler(LLMHandler):
         """Initialize the vLLM engine."""
         print(f"Loading model {self.model_name} with vLLM...")
 
-        # Set HF token as environment variable if provided
         if self.api_key:
             os.environ["HUGGING_FACE_HUB_TOKEN"] = self.api_key
 
-        # Default vLLM parameters optimized for memory efficiency
         vllm_kwargs = {
             "model": self.model_name,
             "tensor_parallel_size": 1,
-            "enforce_eager": True,  # Disable CUDA graphs to avoid compilation
+            "enforce_eager": True,
             "gpu_memory_utilization": kwargs.get("gpu_memory_utilization", 0.7),
             "max_model_len": kwargs.get("max_model_len", 2048),
             "trust_remote_code": True,
-            "disable_log_stats": True,  # Reduce logging overhead
+            "disable_log_stats": True,
         }
-
-        # Override with any provided kwargs (excluding incompatible ones)
-        excluded_keys = {"token", "api_key"}
-        for key, value in kwargs.items():
-            if key not in excluded_keys:
-                vllm_kwargs[key] = value
 
         try:
             self.llm = LLM(**vllm_kwargs)
@@ -295,46 +287,20 @@ class VLLMHandler(LLMHandler):
         **kwargs: Any,
     ):
         """Generate content using vLLM."""
-        # Format the prompt properly
-        # Try to use chat format if supported
-        try:
-            # For chat models, use the chat method
-            messages = [
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt},
-            ]
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
+        ]
 
-            # Use vLLM's chat method if available
-            if hasattr(self.llm, "chat"):
-                sampling_params = SamplingParams(
-                    temperature=temperature,
-                    top_p=top_p,
-                    max_tokens=max_tokens,
-                    **kwargs,
-                )
-                outputs = self.llm.chat(messages, sampling_params=sampling_params)
-                response_text = outputs[0].outputs[0].text
-            else:
-                # Fallback to generate method with manual prompt formatting
-                prompt = f"System: {system_prompt}\n\nUser: {user_prompt}\n\nAssistant:"
-                sampling_params = SamplingParams(
-                    temperature=temperature,
-                    top_p=top_p,
-                    max_tokens=max_tokens,
-                    **kwargs,
-                )
-                outputs = self.llm.generate([prompt], sampling_params=sampling_params)
-                response_text = outputs[0].outputs[0].text
+        sampling_params = SamplingParams(
+            temperature=temperature,
+            top_p=top_p,
+            max_tokens=max_tokens,
+            **kwargs,
+        )
 
-        except Exception as e:
-            # Final fallback - simple prompt format
-            print(f"Chat format failed, using simple prompt: {e}")
-            prompt = f"{system_prompt}\n\n{user_prompt}"
-            sampling_params = SamplingParams(
-                temperature=temperature, top_p=top_p, max_tokens=max_tokens, **kwargs
-            )
-            outputs = self.llm.generate([prompt], sampling_params=sampling_params)
-            response_text = outputs[0].outputs[0].text
+        outputs = self.llm.chat(messages, sampling_params=sampling_params)
+        response_text = outputs[0].outputs[0].text
 
         class VLLMResponse:
             def __init__(self, text: str):
