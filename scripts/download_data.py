@@ -10,7 +10,6 @@ Both scripts support Kaggle dataset downloads with progress indicators and
 fallback mechanisms (aria2c preferred, curl/WebRequest as fallback).
 """
 
-import os
 import platform
 import re
 import subprocess
@@ -167,7 +166,7 @@ Examples:
   # Custom dataset
   python download_data.py custom --slug user/dataset --name MyDataset --zip dataset.zip
 
-Note: 
+Note:
   - On Windows: Uses download_dataset.ps1 (PowerShell script)
   - On Linux/macOS: Uses download_dataset.sh (Bash script)
         """,
