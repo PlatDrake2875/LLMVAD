@@ -121,18 +121,8 @@ indent-style = "space"
 skip-magic-trailing-comma = false
 line-ending = "auto"
 
-[tool.pytest.ini_options]
-testpaths = ["tests"]
-python_files = ["test_*.py"]
-markers = [
-    "huggingface: tests for HuggingFace handler (run separately due to GPU memory)",
-    "vllm: tests for vLLM handler (run separately due to GPU memory)",
-    "factory: tests for LLM handler factory (lightweight, no model loading)",
-] 
-
 [dependency-groups]
 dev = [
-    "pytest>=7.0.0",
     "black>=23.0.0",
     "ruff>=0.12.7",
     "pyright>=1.1.0",
