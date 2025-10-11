@@ -1,10 +1,13 @@
 # filepath: c:\Users\LDG\LLMVAD\gemini_handler.py
 import os
 from abc import ABC, abstractmethod
-from typing import Literal, Protocol
+from typing import Any, Literal, Protocol
 
+import torch
 from dotenv import load_dotenv
 from google.genai import Client, types
+from transformers import AutoModelForCausalLM, AutoTokenizer
+from vllm import LLM, SamplingParams
 
 load_dotenv()
 
@@ -83,12 +86,172 @@ class GeminiLLMHandler(LLMHandler):
 
 
 class HuggingFaceLLMHandler(LLMHandler):
-    """Handler for HuggingFace models - To be implemented."""
+    """Handler for HuggingFace models (Gemma-3 friendly)."""
 
     def __init__(self, model_name: str, api_key: str | None = None):
         self.model_name = model_name
         self.api_key = api_key
-        raise NotImplementedError("HuggingFace handler not yet implemented")
+        self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        self.tokenizer = None
+        self.model = None
+        self._initialize_model()
+
+    def _initialize_model(self):
+        print(f"Loading model {self.model_name} on {self.device}...")
+
+        self.tokenizer = AutoTokenizer.from_pretrained(
+            self.model_name, token=self.api_key
+        )
+
+        use_bf16 = (self.device == "cuda") and torch.cuda.is_bf16_supported()
+        dtype = (
+            torch.bfloat16
+            if use_bf16
+            else (torch.float16 if self.device == "cuda" else torch.float32)
+        )
+
+        self.model = AutoModelForCausalLM.from_pretrained(
+            self.model_name,
+            dtype=dtype,
+            device_map="auto" if self.device == "cuda" else None,
+            token=self.api_key,
+        ).eval()
+
+        if self.tokenizer.pad_token_id is None:
+            self.tokenizer.pad_token = self.tokenizer.eos_token
+
+        print(f"Model loaded successfully on {self.device}")
+
+    def _eos_ids(self):
+        """
+        Build a robust eos list that includes Gemma's turn-end token.
+        """
+        ids = set()
+        if self.tokenizer.eos_token_id is not None:
+            if isinstance(self.tokenizer.eos_token_id, int):
+                ids.add(self.tokenizer.eos_token_id)
+            else:
+                ids.update(self.tokenizer.eos_token_id)
+
+        for tok in ("<end_of_turn>", "<|eot_id|>", "<eos>"):
+            tid = self.tokenizer.convert_tokens_to_ids(tok)
+            if isinstance(tid, int) and tid >= 0:
+                ids.add(tid)
+
+        return list(ids) if ids else None
+
+    def generate_content(
+        self,
+        video_data: bytes,  
+        system_prompt: str,
+        user_prompt: str,
+        response_mime_type: str = "application/json",
+        *,
+        max_new_tokens: int = 256,
+        do_sample: bool = False,
+        temperature: float = 0.7,
+        top_p: float = 0.9,
+    ):
+        """
+        Generate using the tokenizer's chat template (Gemma-3 friendly).
+        """
+        messages = [
+            [
+                {
+                    "role": "system",
+                    "content": [{"type": "text", "text": system_prompt}],
+                },
+                {"role": "user", "content": [{"type": "text", "text": user_prompt}]},
+            ]
+        ]
+
+        inputs = self.tokenizer.apply_chat_template(
+            messages,
+            add_generation_prompt=True,
+            tokenize=True,
+            return_tensors="pt",
+            return_dict=True,
+        ).to(self.model.device)
+
+        eos_ids = self._eos_ids()
+
+        gen_kwargs = {
+            "max_new_tokens": max_new_tokens,
+            "eos_token_id": eos_ids,
+            "pad_token_id": self.tokenizer.pad_token_id,
+        }
+
+        if do_sample:
+            gen_kwargs.update(
+                {
+                    "do_sample": True,
+                    "temperature": temperature,
+                    "top_p": top_p,
+                }
+            )
+        else:
+            gen_kwargs.update({"do_sample": False})
+
+        with torch.inference_mode():
+            outputs = self.model.generate(**inputs, **gen_kwargs)
+
+        decoded = self.tokenizer.batch_decode(outputs, skip_special_tokens=True)
+
+        text = decoded[0].strip()
+
+        for marker in ("<end_of_turn>", "<|eot_id|>"):
+            if marker in text:
+                text = text.split(marker)[0].strip()
+                break
+
+        class HuggingFaceResponse:
+            def __init__(self, text: str):
+                self._text = text
+
+            @property
+            def text(self) -> str | None:
+                return self._text
+
+        return HuggingFaceResponse(text)
+
+    def get_client(self):
+        return self.model
+
+
+class VLLMHandler(LLMHandler):
+    """Handler for vLLM inference engine."""
+
+    def __init__(
+        self, model_name: str, api_key: str | None = None, **kwargs: Any
+    ) -> None:
+        self.model_name = model_name
+        self.api_key = api_key
+        self.llm = None
+        self._initialize_model(**kwargs)
+
+    def _initialize_model(self, **kwargs: Any) -> None:
+        """Initialize the vLLM engine."""
+        print(f"Loading model {self.model_name} with vLLM...")
+
+        if self.api_key:
+            os.environ["HUGGING_FACE_HUB_TOKEN"] = self.api_key
+
+        vllm_kwargs = {
+            "model": self.model_name,
+            "tensor_parallel_size": 1,
+            "enforce_eager": True,
+            "gpu_memory_utilization": kwargs.get("gpu_memory_utilization", 0.7),
+            "max_model_len": kwargs.get("max_model_len", 2048),
+            "trust_remote_code": True,
+            "disable_log_stats": True,
+        }
+
+        try:
+            self.llm = LLM(**vllm_kwargs)
+            print(f"Model {self.model_name} loaded successfully with vLLM")
+        except Exception as e:
+            print(f"Failed to load model with vLLM: {e}")
+            raise
 
     def generate_content(
         self,
@@ -96,11 +259,40 @@ class HuggingFaceLLMHandler(LLMHandler):
         system_prompt: str,
         user_prompt: str,
         response_mime_type: str = "application/json",
+        temperature: float = 0.0,
+        top_p: float = 1.0,
+        max_tokens: int = 256,
+        **kwargs: Any,
     ):
-        raise NotImplementedError("HuggingFace handler not yet implemented")
+        """Generate content using vLLM."""
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
+        ]
+
+        sampling_params = SamplingParams(
+            temperature=temperature,
+            top_p=top_p,
+            max_tokens=max_tokens,
+            **kwargs,
+        )
+
+        outputs = self.llm.chat(messages, sampling_params=sampling_params)
+        response_text = outputs[0].outputs[0].text
+
+        class VLLMResponse:
+            def __init__(self, text: str):
+                self._text = text.strip()
+
+            @property
+            def text(self) -> str | None:
+                return self._text
+
+        return VLLMResponse(response_text)
 
     def get_client(self):
-        raise NotImplementedError("HuggingFace handler not yet implemented")
+        """Get the underlying vLLM engine."""
+        return self.llm
 
 
 class LLMHandlerFactory:
@@ -108,17 +300,17 @@ class LLMHandlerFactory:
 
     @staticmethod
     def create_handler(
-        provider: Literal["gemini", "huggingface"],
-        model_name: str | None = None,
+        provider: Literal["gemini", "huggingface", "vllm"],
+        model_name: str,
         api_key: str | None = None,
+        **kwargs: Any,
     ) -> LLMHandler:
         if provider == "gemini":
-            model = model_name or "gemini-2.5-flash"
-            return GeminiLLMHandler(model_name=model)
+            return GeminiLLMHandler(model_name=model_name)
         elif provider == "huggingface":
-            if model_name is None:
-                raise ValueError("model_name is required for HuggingFace provider")
             return HuggingFaceLLMHandler(model_name=model_name, api_key=api_key)
+        elif provider == "vllm":
+            return VLLMHandler(model_name=model_name, api_key=api_key, **kwargs)
         else:
             raise ValueError(f"Unknown provider: {provider}")
 
