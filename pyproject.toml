@@ -17,6 +17,11 @@ dependencies = [
     "scikit-learn>=1.3.0",
     "python-dotenv>=1.1.1",
     "pyyaml>=6.0.0",
+    "transformers>=4.57.0",
+    "torch>=2.8.0",
+    "huggingface-hub>=0.35.3",
+    "accelerate>=1.10.1",
+    "vllm>=0.11.0",
 ]
 
 [project.optional-dependencies]
@@ -77,6 +82,7 @@ ignore = [
     "D104",  # missing package docstring - acceptable for __init__.py
     "D107",  # missing __init__ docstring - acceptable for some classes
     "D200",  # one-line docstring formatting - acceptable
+    "D203",  # incorrect-blank-line-before-class - conflicts with D211
     "D205",  # docstring blank line - acceptable
     "D212",  # docstring formatting - acceptable
     "D213",  # docstring formatting - acceptable
@@ -106,6 +112,7 @@ ignore = [
     "FBT001",  # boolean positional - acceptable
     "FBT002",  # boolean positional - acceptable
     "FBT003",  # boolean positional - acceptable
+    "ANN401",  # Any type in kwargs - acceptable for flexible APIs
 ]
 
 [tool.ruff.format]
@@ -116,17 +123,17 @@ line-ending = "auto"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-python_files = ["test_*.py"] 
+python_files = ["test_*.py"]
+markers = [
+    "huggingface: tests for HuggingFace handler (run separately due to GPU memory)",
+    "vllm: tests for vLLM handler (run separately due to GPU memory)",
+    "factory: tests for LLM handler factory (lightweight, no model loading)",
+] 
 
 [dependency-groups]
 dev = [
-    "ruff>=0.12.7",
-]
-
-[tool.uv]
-dev-dependencies = [
     "pytest>=7.0.0",
     "black>=23.0.0",
-    "ruff>=0.1.0",
+    "ruff>=0.12.7",
     "pyright>=1.1.0",
 ]
