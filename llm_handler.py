@@ -99,12 +99,10 @@ class HuggingFaceLLMHandler(LLMHandler):
     def _initialize_model(self):
         print(f"Loading model {self.model_name} on {self.device}...")
 
-        # Tokenizer
         self.tokenizer = AutoTokenizer.from_pretrained(
             self.model_name, token=self.api_key
         )
 
-        # Model (prefer bfloat16 on modern GPUs; else float16; else float32)
         use_bf16 = (self.device == "cuda") and torch.cuda.is_bf16_supported()
         dtype = (
             torch.bfloat16
@@ -119,17 +117,8 @@ class HuggingFaceLLMHandler(LLMHandler):
             token=self.api_key,
         ).eval()
 
-        # Ensure pad_token_id is set (some chat models omit it)
         if self.tokenizer.pad_token_id is None:
-            # fall back to eos as pad, a common practice
             self.tokenizer.pad_token = self.tokenizer.eos_token
-
-        # Make greedy the default (you can override in generate_content)
-        try:
-            self.model.generation_config.do_sample = False
-        except AttributeError:
-            # Some models don't have generation_config, which is fine
-            pass
 
         print(f"Model loaded successfully on {self.device}")
 
@@ -139,13 +128,11 @@ class HuggingFaceLLMHandler(LLMHandler):
         """
         ids = set()
         if self.tokenizer.eos_token_id is not None:
-            # may be int or list already
             if isinstance(self.tokenizer.eos_token_id, int):
                 ids.add(self.tokenizer.eos_token_id)
             else:
                 ids.update(self.tokenizer.eos_token_id)
 
-        # Add common chat end markers if they exist in the vocab
         for tok in ("<end_of_turn>", "<|eot_id|>", "<eos>"):
             tid = self.tokenizer.convert_tokens_to_ids(tok)
             if isinstance(tid, int) and tid >= 0:
@@ -155,7 +142,7 @@ class HuggingFaceLLMHandler(LLMHandler):
 
     def generate_content(
         self,
-        video_data: bytes,  # ignored for text-only models like gemma3_text
+        video_data: bytes,  
         system_prompt: str,
         user_prompt: str,
         response_mime_type: str = "application/json",
@@ -168,8 +155,6 @@ class HuggingFaceLLMHandler(LLMHandler):
         """
         Generate using the tokenizer's chat template (Gemma-3 friendly).
         """
-        # Gemma-3 expects messages shaped like a batch of conversations.
-        # We pass a single conversation (list) wrapped in a batch list.
         messages = [
             [
                 {
@@ -180,7 +165,6 @@ class HuggingFaceLLMHandler(LLMHandler):
             ]
         ]
 
-        # Let the tokenizer format + tokenize per the model card
         inputs = self.tokenizer.apply_chat_template(
             messages,
             add_generation_prompt=True,
@@ -196,7 +180,7 @@ class HuggingFaceLLMHandler(LLMHandler):
             "eos_token_id": eos_ids,
             "pad_token_id": self.tokenizer.pad_token_id,
         }
-        # Deterministic by default; enable sampling explicitly if wanted
+
         if do_sample:
             gen_kwargs.update(
                 {
@@ -211,16 +195,10 @@ class HuggingFaceLLMHandler(LLMHandler):
         with torch.inference_mode():
             outputs = self.model.generate(**inputs, **gen_kwargs)
 
-        # Batch decode; strip the prompt portion
-        # When using apply_chat_template(tokenize=True, return_dict=True),
-        # outputs already include the prompt; cutting the new tokens is optional.
-        # tokenizer.batch_decode handles it well; we still remove special tokens.
         decoded = self.tokenizer.batch_decode(outputs, skip_special_tokens=True)
 
-        # First (and only) item from the batch
         text = decoded[0].strip()
 
-        # Optional safety: stop at well-known markers (should already be handled by eos)
         for marker in ("<end_of_turn>", "<|eot_id|>"):
             if marker in text:
                 text = text.split(marker)[0].strip()
